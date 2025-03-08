@@ -436,15 +436,11 @@ document.addEventListener('DOMContentLoaded', () => {
             filterItem.className = 'filter-item';
             filterItem.dataset.filter = filter.id;
 
-            const filterPreview = document.createElement('div');
-            filterPreview.className = 'filter-preview';
-            filterPreview.style.filter = filter.css;
-
+            // 删除预览图标部分，只保留文字
             const filterName = document.createElement('div');
             filterName.className = 'filter-name';
             filterName.textContent = filter.name;
 
-            filterItem.appendChild(filterPreview);
             filterItem.appendChild(filterName);
 
             // 添加滤镜选择事件
