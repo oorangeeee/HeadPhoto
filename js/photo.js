@@ -423,8 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     // 显示滤镜面板
                     document.getElementById('filterPanel').style.display = 'block';
 
-                    // 设置默认滤镜
-                    currentFilter = 'normal';
+                    // 应用当前选择的滤镜（如果已经选择了滤镜）
                     applyFilter();
                 }
             };
@@ -509,6 +508,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const colorPickerContainer = document.createElement('div');
         colorPickerContainer.className = 'color-picker-container';
+        colorPickerContainer.style.position = 'relative'; // 添加相对定位
 
         const colorPreview = document.createElement('div');
         colorPreview.className = 'color-preview';
@@ -518,7 +518,14 @@ document.addEventListener('DOMContentLoaded', () => {
         colorInput.type = 'color';
         colorInput.id = 'backgroundColorPicker';
         colorInput.value = backgroundColor;
-        colorInput.style.display = 'none'; // 隐藏原始颜色选择器
+        // 改为绝对定位，覆盖在预览上
+        colorInput.style.position = 'absolute';
+        colorInput.style.opacity = '0';
+        colorInput.style.left = '0';
+        colorInput.style.top = '0';
+        colorInput.style.width = '40px';
+        colorInput.style.height = '40px';
+        colorInput.style.cursor = 'pointer';
 
         // 添加点击圆圈打开颜色选择器的事件
         colorPreview.addEventListener('click', () => {
@@ -528,7 +535,16 @@ document.addEventListener('DOMContentLoaded', () => {
         colorInput.addEventListener('input', (e) => {
             backgroundColor = e.target.value;
             colorPreview.style.backgroundColor = backgroundColor;
-            mergePhotos(); // 实时更新背景颜色
+
+            // 保存当前滤镜设置
+            const currentFilterSetting = currentFilter;
+
+            // 更新背景色
+            mergePhotos();
+
+            // 恢复滤镜选择
+            currentFilter = currentFilterSetting;
+            applyFilter();
         });
 
         colorPickerContainer.appendChild(colorPreview);
