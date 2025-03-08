@@ -108,6 +108,16 @@ document.addEventListener('DOMContentLoaded', () => {
         errorText.style.display = 'none';
         resetButton.style.display = 'block';
 
+        // 添加视频元数据加载事件，用于调整视频显示比例
+        video.addEventListener('loadedmetadata', () => {
+            // 获取实际视频比例
+            const actualRatio = video.videoWidth / video.videoHeight;
+            // 移除固定宽高比，使用实际比例
+            video.style.aspectRatio = `${actualRatio}`;
+            // 确保视频内容完全填充显示区域
+            video.style.objectFit = 'cover';
+        });
+
         stream.getVideoTracks()[0].addEventListener('ended', () => {
             showError('摄像头连接已断开');
             captureButton.style.display = 'none';
@@ -207,9 +217,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // 倒计时拍照
     function takePhotoWithCountdown(seconds) {
         let remaining = seconds;
-
-        // 确保倒计时显示是可见的
-        countdownDisplay.style.display = 'block';
 
         // 更新倒计时显示
         countdownDisplay.textContent = `${remaining}`;
