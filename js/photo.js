@@ -12,9 +12,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadButton = document.getElementById('downloadButton');
     const resetButton = document.getElementById('resetButton');
 
-    // 新的照片显示容器
-    const photosDisplay = document.getElementById('photosDisplay');
-
     let isInitializing = false;
     let photoCount = 0;
     let photoDataArray = [];
@@ -325,9 +322,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const photoData = canvas.toDataURL('image/png');
         photoDataArray.push(photoData);
 
-        // 更新照片显示
-        appendCapturedPhoto(photoData);
-
         photoCount++;
 
         if (photoCount < 4) {
@@ -339,18 +333,6 @@ document.addEventListener('DOMContentLoaded', () => {
             fileNameInput.style.display = 'block';
             downloadButton.style.display = 'block';
         }
-    }
-
-    // 新的函数：添加拍摄的照片到显示区
-    function appendCapturedPhoto(photoData) {
-        const photoDiv = document.createElement('div');
-        photoDiv.className = 'captured-photo';
-
-        const img = document.createElement('img');
-        img.src = photoData;
-
-        photoDiv.appendChild(img);
-        photosDisplay.appendChild(photoDiv);
     }
 
     function mergePhotos() {
@@ -767,11 +749,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // 重置照片计数和数据
         photoCount = 0;
         photoDataArray = [];
-
-        // 清空照片显示区
-        while (photosDisplay.firstChild) {
-            photosDisplay.removeChild(photosDisplay.firstChild);
-        }
 
         // 重置UI状态
         mergedPhoto.style.display = 'none';
