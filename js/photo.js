@@ -415,16 +415,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 mCtx.drawImage(img, x + offsetX, y + offsetY, drawWidth, drawHeight);
                 mCtx.restore();
 
-                // 如果是最后一张照片绘制完成，则更新合并后的图片
+                // 如果是最后一张照片绘制完成，则更新合并后的图片并应用滤镜
                 if (index === 3) {
+                    // 先显示基本合并图
                     mergedPhoto.src = mergedCanvas.toDataURL('image/png');
                     mergedPhoto.style.display = 'block';
 
                     // 显示滤镜面板
                     document.getElementById('filterPanel').style.display = 'block';
 
-                    // 应用当前选择的滤镜（如果已经选择了滤镜）
-                    applyFilter();
+                    // 应用当前选择的滤镜
+                    if (currentFilter !== 'normal') {
+                        applyFilterToPreview();
+                    }
                 }
             };
             img.src = photoData;
@@ -490,7 +493,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 filterItem.classList.add('active');
                 currentFilter = filter.id;
-                applyFilter();
+
+                // 实时应用滤镜到预览图上
+                applyFilterToPreview();
             });
 
             filterGrid.appendChild(filterItem);
@@ -539,12 +544,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // 保存当前滤镜设置
             const currentFilterSetting = currentFilter;
 
-            // 更新背景色
-            mergePhotos();
-
-            // 恢复滤镜选择
-            currentFilter = currentFilterSetting;
-            applyFilter();
+            // 重新生成带新背景的预览图
+            applyFilterToPreview();
         });
 
         colorPickerContainer.appendChild(colorPreview);
@@ -560,12 +561,100 @@ document.addEventListener('DOMContentLoaded', () => {
         return filterPanel;
     }
 
-    // 应用选择的滤镜
-    function applyFilter() {
+    // 新增函数：应用滤镜到预览图上
+    function applyFilterToPreview() {
+        if (photoCount < 4 || !mergedCanvas) return;
+
+        // 创建一个新canvas用于预览
+        const previewCanvas = document.createElement('canvas');
+        previewCanvas.width = mergedCanvas.width;
+        previewCanvas.height = mergedCanvas.height;
+        const previewCtx = previewCanvas.getContext('2d');
+
+        // 绘制背景（不带滤镜）
+        // 填充白色背景
+        previewCtx.fillStyle = 'white';
+        previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+
+        // 绘制圆角矩形作为背景，使用选择的颜色
+        previewCtx.fillStyle = backgroundColor;
+        roundRect(previewCtx, 0, 0, previewCanvas.width, previewCanvas.height, 20, true, false);
+
+        // 获取选中的滤镜
         const selectedFilter = filterOptions.find(f => f.id === currentFilter);
-        if (selectedFilter) {
-            mergedPhoto.style.filter = selectedFilter.css;
-        }
+
+        // 绘制四张照片，每张都应用滤镜
+        const photoWidth = 600;
+        const photoHeight = photoWidth * 3 / 4;
+        const padding = 20;
+
+        const positions = [
+            [padding, padding],
+            [padding, padding + photoHeight + padding],
+            [padding, padding + (photoHeight + padding) * 2],
+            [padding, padding + (photoHeight + padding) * 3]
+        ];
+
+        // 收集所有照片并应用滤镜
+        let loadedCount = 0;
+
+        photoDataArray.forEach((photoData, index) => {
+            const photoImg = new Image();
+            photoImg.onload = () => {
+                const [x, y] = positions[index];
+
+                // 绘制白色背景和边框
+                previewCtx.fillStyle = '#ffffff';
+                roundRect(previewCtx, x, y, photoWidth, photoHeight, 12, true, false);
+
+                // 创建临时canvas应用滤镜
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = photoWidth;
+                tempCanvas.height = photoHeight;
+                const tempCtx = tempCanvas.getContext('2d');
+
+                // 计算保持原始比例的尺寸
+                const originalRatio = photoImg.width / photoImg.height;
+                let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
+
+                if (originalRatio > (photoWidth / photoHeight)) {
+                    drawHeight = photoHeight;
+                    drawWidth = drawHeight * originalRatio;
+                    offsetX = (photoWidth - drawWidth) / 2;
+                } else {
+                    drawWidth = photoWidth;
+                    drawHeight = drawWidth / originalRatio;
+                    offsetY = (photoHeight - drawHeight) / 2;
+                }
+
+                // 应用滤镜效果
+                if (selectedFilter && currentFilter !== 'normal') {
+                    tempCtx.filter = selectedFilter.css;
+                }
+
+                tempCtx.drawImage(photoImg, offsetX, offsetY, drawWidth, drawHeight);
+                tempCtx.filter = 'none';
+
+                // 在圆角矩形内绘制滤镜后的照片
+                previewCtx.save();
+                roundRect(previewCtx, x, y, photoWidth, photoHeight, 12, false, true);
+                previewCtx.clip();
+                previewCtx.drawImage(tempCanvas, x, y);
+                previewCtx.restore();
+
+                // 绘制白色边框
+                previewCtx.strokeStyle = '#ffffff';
+                previewCtx.lineWidth = 2;
+                roundRect(previewCtx, x, y, photoWidth, photoHeight, 12, false, true);
+
+                loadedCount++;
+                if (loadedCount === 4) {
+                    // 更新预览图
+                    mergedPhoto.src = previewCanvas.toDataURL('image/png');
+                }
+            };
+            photoImg.src = photoData;
+        });
     }
 
     function downloadPhoto() {
@@ -581,42 +670,106 @@ document.addEventListener('DOMContentLoaded', () => {
             fileName = `photobooth_${now.getTime()}`;
         }
 
-        // 创建一个新的canvas来应用滤镜效果
-        const filterCanvas = document.createElement('canvas');
-        filterCanvas.width = mergedCanvas.width;
-        filterCanvas.height = mergedCanvas.height;
-        const filterCtx = filterCanvas.getContext('2d');
+        // 创建一个新的canvas来合成最终图像
+        const finalCanvas = document.createElement('canvas');
+        finalCanvas.width = mergedCanvas.width;
+        finalCanvas.height = mergedCanvas.height;
+        const finalCtx = finalCanvas.getContext('2d');
 
-        // 创建一个临时图像来获取带滤镜的图像
-        const tempImg = new Image();
-        tempImg.onload = () => {
-            // 绘制原始图像
-            filterCtx.drawImage(tempImg, 0, 0);
+        // 绘制背景（没有滤镜）
+        const backgroundImg = new Image();
+        backgroundImg.onload = () => {
+            // 首先绘制背景
+            finalCtx.drawImage(backgroundImg, 0, 0);
 
-            // 应用滤镜效果(如果不是normal)
-            if (currentFilter !== 'normal') {
-                const selectedFilter = filterOptions.find(f => f.id === currentFilter);
-                if (selectedFilter) {
-                    // 使用CSS滤镜
-                    filterCtx.filter = selectedFilter.css;
-                    filterCtx.drawImage(tempImg, 0, 0);
-                    filterCtx.filter = 'none';
-                }
+            // 然后为每个照片位置单独应用滤镜
+            const selectedFilter = filterOptions.find(f => f.id === currentFilter);
+            if (!selectedFilter || currentFilter === 'normal') {
+                // 如果没有滤镜或是normal滤镜，直接使用合并后的图像
+                finalizeDownload();
+            } else {
+                // 绘制四张照片，每张都应用滤镜
+                const photoWidth = 600;
+                const photoHeight = photoWidth * 3 / 4;
+                const padding = 20;
+
+                const positions = [
+                    [padding, padding],
+                    [padding, padding + photoHeight + padding],
+                    [padding, padding + (photoHeight + padding) * 2],
+                    [padding, padding + (photoHeight + padding) * 3]
+                ];
+
+                // 收集所有照片并应用滤镜
+                let loadedCount = 0;
+                photoDataArray.forEach((photoData, index) => {
+                    const photoImg = new Image();
+                    photoImg.onload = () => {
+                        const [x, y] = positions[index];
+
+                        // 创建临时canvas应用滤镜
+                        const tempCanvas = document.createElement('canvas');
+                        tempCanvas.width = photoWidth;
+                        tempCanvas.height = photoHeight;
+                        const tempCtx = tempCanvas.getContext('2d');
+
+                        // 计算保持原始比例的尺寸
+                        const originalRatio = photoImg.width / photoImg.height;
+                        let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
+
+                        if (originalRatio > (photoWidth / photoHeight)) {
+                            drawHeight = photoHeight;
+                            drawWidth = drawHeight * originalRatio;
+                            offsetX = (photoWidth - drawWidth) / 2;
+                        } else {
+                            drawWidth = photoWidth;
+                            drawHeight = drawWidth / originalRatio;
+                            offsetY = (photoHeight - drawHeight) / 2;
+                        }
+
+                        // 应用滤镜效果
+                        tempCtx.filter = selectedFilter.css;
+                        tempCtx.drawImage(photoImg, offsetX, offsetY, drawWidth, drawHeight);
+                        tempCtx.filter = 'none';
+
+                        // 在圆角矩形内绘制滤镜后的照片
+                        finalCtx.save();
+                        roundRect(finalCtx, x, y, photoWidth, photoHeight, 12, false, true);
+                        finalCtx.clip();
+                        finalCtx.drawImage(tempCanvas, x, y);
+                        finalCtx.restore();
+
+                        // 绘制白色边框
+                        finalCtx.strokeStyle = '#ffffff';
+                        finalCtx.lineWidth = 2;
+                        roundRect(finalCtx, x, y, photoWidth, photoHeight, 12, false, true);
+
+                        loadedCount++;
+                        if (loadedCount === 4) {
+                            finalizeDownload();
+                        }
+                    };
+                    photoImg.src = photoData;
+                });
             }
 
-            // 创建下载链接
-            const downloadLink = document.createElement('a');
-            downloadLink.href = filterCanvas.toDataURL('image/png');
-            downloadLink.download = `${fileName}.png`;
+            function finalizeDownload() {
+                // 创建下载链接
+                const downloadLink = document.createElement('a');
+                downloadLink.href = finalCanvas.toDataURL('image/png');
+                downloadLink.download = `${fileName}.png`;
 
-            // 触发下载
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
+                // 触发下载
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
 
-            statusText.textContent = '大头贴已保存';
+                statusText.textContent = '大头贴已保存';
+            }
         };
-        tempImg.src = mergedPhoto.src;
+
+        // 加载背景图像
+        backgroundImg.src = mergedCanvas.toDataURL('image/png');
     }
 
     function resetPhotos() {
