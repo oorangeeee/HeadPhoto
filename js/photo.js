@@ -40,54 +40,199 @@ document.addEventListener('DOMContentLoaded', () => {
     let backgroundColor = '#f5f5f7'; // 添加背景颜色变量，默认为浅灰色
     const filterOptions = [
         // 基础类优化
-        { id: 'normal', name: '原图', css: 'brightness(102%) contrast(102%)' }, // 微调提升画面通透感
+        { id: 'normal', name: '原图', apply: (ctx, imgData) => imgData },
 
         // 专业级单色滤镜
-        { id: 'monochrome', name: '银盐', css: 'grayscale(100%) contrast(120%) brightness(98%)' }, // 模拟胶片黑白
+        {
+            id: 'monochrome',
+            name: '银盐',
+            apply: (ctx, imgData) => {
+                const data = imgData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    const gray = 0.3 * data[i] + 0.59 * data[i + 1] + 0.11 * data[i + 2];
+                    data[i] = gray * 1.2; // 增加对比度
+                    data[i + 1] = gray * 1.2;
+                    data[i + 2] = gray * 1.2;
+                }
+                return imgData;
+            }
+        },
 
         // 高级复合滤镜
         {
-            id: 'vintage', name: '胶片', css:
-                'sepia(40%) hue-rotate(-10deg) contrast(110%) saturate(120%) brightness(105%)'
-        }, // 柯达胶片风格
+            id: 'vintage',
+            name: '胶片',
+            apply: (ctx, imgData) => {
+                const data = imgData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    // 棕褐色调
+                    data[i] = Math.min(255, (data[i] * 1.1) + 10);
+                    data[i + 1] = Math.min(255, (data[i + 1] * 0.9) + 10);
+                    data[i + 2] = Math.min(255, (data[i + 2] * 0.8));
+
+                    // 增加对比度
+                    data[i] = Math.min(255, data[i] * 1.1);
+                    data[i + 1] = Math.min(255, data[i + 1] * 1.1);
+                    data[i + 2] = Math.min(255, data[i + 2] * 1.1);
+                }
+                return imgData;
+            }
+        },
 
         {
-            id: 'cinematic', name: '电影', css:
-                'contrast(130%) brightness(95%) saturate(110%) hue-rotate(5deg)'
-        }, // 电影级调色
+            id: 'cinematic',
+            name: '电影',
+            apply: (ctx, imgData) => {
+                const data = imgData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    // 增加对比度和饱和度
+                    data[i] = Math.min(255, data[i] * 1.3);
+                    data[i + 1] = Math.min(255, data[i + 1] * 1.1);
+                    data[i + 2] = Math.min(255, data[i + 2] * 0.95);
+
+                    // 降低亮度
+                    data[i] = Math.max(0, data[i] * 0.95);
+                    data[i + 1] = Math.max(0, data[i + 1] * 0.95);
+                    data[i + 2] = Math.max(0, data[i + 2] * 0.95);
+                }
+                return imgData;
+            }
+        },
 
         // 现代流行风格
         {
-            id: 'clarendon', name: '克莱顿', css:
-                'contrast(120%) saturate(180%) brightness(105%)'
-        }, // Instagram流行风格
+            id: 'clarendon',
+            name: '克莱顿',
+            apply: (ctx, imgData) => {
+                const data = imgData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    // 增加对比度和饱和度
+                    data[i] = Math.min(255, data[i] * 1.2);
+                    data[i + 1] = Math.min(255, data[i + 1] * 1.2);
+                    data[i + 2] = Math.min(255, data[i + 2] * 1.8);
+
+                    // 增加亮度
+                    data[i] = Math.min(255, data[i] + 5);
+                    data[i + 1] = Math.min(255, data[i + 1] + 5);
+                    data[i + 2] = Math.min(255, data[i + 2] + 5);
+                }
+                return imgData;
+            }
+        },
 
         {
-            id: 'juno', name: '朱诺', css:
-                'contrast(110%) saturate(140%) sepia(20%) hue-rotate(-15deg)'
-        }, // VSCO经典滤镜
+            id: 'juno',
+            name: '朱诺',
+            apply: (ctx, imgData) => {
+                const data = imgData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    // 增加暖色调
+                    data[i] = Math.min(255, data[i] * 1.1);
+                    data[i + 1] = Math.min(255, data[i + 1] * 1.4);
+                    data[i + 2] = Math.min(255, data[i + 2] * 0.9);
+
+                    // 增加对比度
+                    data[i] = Math.min(255, data[i] * 1.1);
+                    data[i + 1] = Math.min(255, data[i + 1] * 1.1);
+                    data[i + 2] = Math.min(255, data[i + 2] * 1.1);
+                }
+                return imgData;
+            }
+        },
 
         // 环境光效优化
         {
-            id: 'sunset', name: '黄昏', css:
-                'hue-rotate(-20deg) saturate(130%) contrast(115%) brightness(95%)'
-        }, // 暖色调晚霞效果
+            id: 'sunset',
+            name: '黄昏',
+            apply: (ctx, imgData) => {
+                const data = imgData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    // 暖色调
+                    data[i] = Math.min(255, data[i] * 1.3);
+                    data[i + 1] = Math.min(255, data[i + 1] * 1.1);
+                    data[i + 2] = Math.min(255, data[i + 2] * 0.8);
+
+                    // 对比度
+                    data[i] = Math.min(255, data[i] * 1.15);
+                    data[i + 1] = Math.min(255, data[i + 1] * 1.15);
+                    data[i + 2] = Math.min(255, data[i + 2] * 1.15);
+                }
+                return imgData;
+            }
+        },
 
         {
-            id: 'moonlight', name: '月光', css:
-                'brightness(85%) contrast(125%) hue-rotate(200deg) saturate(80%)'
-        }, // 冷色月光效果
+            id: 'moonlight',
+            name: '月光',
+            apply: (ctx, imgData) => {
+                const data = imgData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    // 冷色调
+                    data[i] = Math.min(255, data[i] * 0.8);
+                    data[i + 1] = Math.min(255, data[i + 1] * 0.9);
+                    data[i + 2] = Math.min(255, data[i + 2] * 1.2);
+
+                    // 降低亮度
+                    data[i] = Math.max(0, data[i] * 0.85);
+                    data[i + 1] = Math.max(0, data[i + 1] * 0.85);
+                    data[i + 2] = Math.max(0, data[i + 2] * 0.85);
+
+                    // 增加对比度
+                    data[i] = Math.min(255, data[i] * 1.25);
+                    data[i + 1] = Math.min(255, data[i + 1] * 1.25);
+                    data[i + 2] = Math.min(255, data[i + 2] * 1.25);
+                }
+                return imgData;
+            }
+        },
 
         // 特殊效果
         {
-            id: 'soft-focus', name: '柔焦', css:
-                'blur(1px) contrast(150%) brightness(105%)'
-        }, // 人像柔肤效果
+            id: 'soft-focus',
+            name: '柔焦',
+            apply: (ctx, imgData) => {
+                // 柔焦效果需要在整个canvas层面实现，用简单的亮度和对比度处理代替
+                const data = imgData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    // 增加亮度
+                    data[i] = Math.min(255, data[i] * 1.05);
+                    data[i + 1] = Math.min(255, data[i + 1] * 1.05);
+                    data[i + 2] = Math.min(255, data[i + 2] * 1.05);
+
+                    // 降低对比度使画面更柔和
+                    data[i] = 128 + (data[i] - 128) * 0.8;
+                    data[i + 1] = 128 + (data[i + 1] - 128) * 0.8;
+                    data[i + 2] = 128 + (data[i + 2] - 128) * 0.8;
+                }
+                return imgData;
+            }
+        },
 
         {
-            id: 'dramatic', name: '戏剧', css:
-                'contrast(200%) brightness(80%) saturate(150%)'
-        } // 高反差艺术效果
+            id: 'dramatic',
+            name: '戏剧',
+            apply: (ctx, imgData) => {
+                const data = imgData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    // 大幅增加对比度
+                    data[i] = 128 + (data[i] - 128) * 2;
+                    data[i + 1] = 128 + (data[i + 1] - 128) * 2;
+                    data[i + 2] = 128 + (data[i + 2] - 128) * 2;
+
+                    // 降低亮度
+                    data[i] = Math.max(0, data[i] * 0.8);
+                    data[i + 1] = Math.max(0, data[i + 1] * 0.8);
+                    data[i + 2] = Math.max(0, data[i + 2] * 0.8);
+
+                    // 增加饱和度
+                    const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                    data[i] = Math.min(255, avg + (data[i] - avg) * 1.5);
+                    data[i + 1] = Math.min(255, avg + (data[i + 1] - avg) * 1.5);
+                    data[i + 2] = Math.min(255, avg + (data[i + 2] - avg) * 1.5);
+                }
+                return imgData;
+            }
+        }
     ];
 
     async function checkCameraSupport() {
@@ -615,57 +760,68 @@ document.addEventListener('DOMContentLoaded', () => {
         // 获取选中的滤镜
         const selectedFilter = filterOptions.find(f => f.id === currentFilter);
 
-        if (selectedFilter) {
-            console.log('应用滤镜:', selectedFilter.name, selectedFilter.css);
-        }
-
         // 获取第一张照片的实际比例
         const photoWidth = 600;
-        let photoHeight;
 
-        // 使用Promise.all确保所有照片都加载并应用滤镜
-        const photoPromises = photoDataArray.map((photoData, index) => {
+        // 处理每张照片
+        let processedCount = 0;
+        const processPhoto = (photoData, index) => {
             return new Promise((resolve) => {
                 const photoImg = new Image();
                 photoImg.onload = () => {
-                    // 使用每张照片的实际比例
                     const actualRatio = photoImg.width / photoImg.height;
-                    photoHeight = photoWidth / actualRatio;
+                    const photoHeight = photoWidth / actualRatio;
 
                     const padding = 20;
                     const x = padding;
                     const y = padding + (photoHeight + padding) * index;
 
-                    // 创建临时canvas应用滤镜
+                    // 创建临时canvas绘制照片
                     const tempCanvas = document.createElement('canvas');
                     tempCanvas.width = photoWidth;
                     tempCanvas.height = photoHeight;
                     const tempCtx = tempCanvas.getContext('2d');
 
-                    // 应用滤镜效果
-                    if (selectedFilter && currentFilter !== 'normal') {
-                        tempCtx.filter = selectedFilter.css;
+                    // 绘制原始照片
+                    tempCtx.drawImage(photoImg, 0, 0, photoWidth, photoHeight);
+
+                    // 应用滤镜
+                    if (selectedFilter && selectedFilter.id !== 'normal') {
+                        try {
+                            // 获取像素数据
+                            let imgData = tempCtx.getImageData(0, 0, photoWidth, photoHeight);
+
+                            // 应用滤镜
+                            imgData = selectedFilter.apply(tempCtx, imgData);
+
+                            // 将处理后的像素数据放回canvas
+                            tempCtx.putImageData(imgData, 0, 0);
+                        } catch (e) {
+                            console.error('应用滤镜失败:', e);
+                        }
                     }
 
-                    tempCtx.drawImage(photoImg, 0, 0, photoWidth, photoHeight);
-                    tempCtx.filter = 'none';
-
-                    // 在圆角矩形内绘制滤镜后的照片
+                    // 绘制到最终canvas
                     previewCtx.save();
                     roundRect(previewCtx, x, y, photoWidth, photoHeight, 12, false, true);
                     previewCtx.clip();
                     previewCtx.drawImage(tempCanvas, x, y);
                     previewCtx.restore();
 
+                    processedCount++;
                     resolve();
                 };
+
                 photoImg.src = photoData;
             });
-        });
+        };
+
+        // 并行处理所有照片
+        const processPromises = photoDataArray.map((photoData, index) => processPhoto(photoData, index));
 
         // 所有照片处理完成后更新预览
-        Promise.all(photoPromises).then(() => {
-            // 更新预览图
+        Promise.all(processPromises).then(() => {
+            console.log('所有照片处理完成，更新预览图');
             mergedPhoto.src = previewCanvas.toDataURL('image/png');
         });
     }
@@ -683,11 +839,13 @@ document.addEventListener('DOMContentLoaded', () => {
             fileName = `photobooth_${now.getTime()}`;
         }
 
+        statusText.textContent = '处理中，请稍候...';
+
         // 创建最终画布
         const finalCanvas = document.createElement('canvas');
         const finalCtx = finalCanvas.getContext('2d');
 
-        // 使用Promise.all确保所有照片加载并正确测量
+        // 先测量所有照片
         const measurePromises = photoDataArray.map(photoData => {
             return new Promise(resolve => {
                 const img = new Image();
@@ -700,7 +858,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const photoWidth = 600;
             const padding = 20;
 
-            // 计算总高度，考虑到每张照片可能有不同的高度
+            // 计算总高度
             let totalHeight = padding;
             dimensions.forEach(dim => {
                 const actualRatio = dim.width / dim.height;
@@ -723,56 +881,73 @@ document.addEventListener('DOMContentLoaded', () => {
             // 获取选中的滤镜
             const selectedFilter = filterOptions.find(f => f.id === currentFilter);
 
-            // 处理每张照片
+            // 顺序处理每张照片以确保正确的位置
             let currentY = padding;
-            const photoPromises = photoDataArray.map((photoData, index) => {
-                return new Promise(resolve => {
-                    const photoImg = new Image();
-                    photoImg.onload = () => {
-                        const actualRatio = photoImg.width / photoImg.height;
-                        const photoHeight = photoWidth / actualRatio;
 
-                        // 创建临时canvas应用滤镜
-                        const tempCanvas = document.createElement('canvas');
-                        tempCanvas.width = photoWidth;
-                        tempCanvas.height = photoHeight;
-                        const tempCtx = tempCanvas.getContext('2d');
+            const processNextPhoto = (index) => {
+                if (index >= photoDataArray.length) {
+                    // 所有照片处理完成，创建下载链接
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = finalCanvas.toDataURL('image/png');
+                    downloadLink.download = `${fileName}.png`;
 
-                        // 应用滤镜效果
-                        if (selectedFilter && currentFilter !== 'normal') {
-                            tempCtx.filter = selectedFilter.css;
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    document.body.removeChild(downloadLink);
+
+                    statusText.textContent = '大头贴已保存';
+                    return;
+                }
+
+                // 处理当前照片
+                const photoData = photoDataArray[index];
+                const photoImg = new Image();
+
+                photoImg.onload = () => {
+                    const actualRatio = photoImg.width / photoImg.height;
+                    const photoHeight = photoWidth / actualRatio;
+
+                    // 创建临时canvas
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = photoWidth;
+                    tempCanvas.height = photoHeight;
+                    const tempCtx = tempCanvas.getContext('2d');
+
+                    // 绘制原始照片
+                    tempCtx.drawImage(photoImg, 0, 0, photoWidth, photoHeight);
+
+                    // 应用滤镜
+                    if (selectedFilter && selectedFilter.id !== 'normal') {
+                        try {
+                            let imgData = tempCtx.getImageData(0, 0, photoWidth, photoHeight);
+                            imgData = selectedFilter.apply(tempCtx, imgData);
+                            tempCtx.putImageData(imgData, 0, 0);
+                        } catch (e) {
+                            console.error('应用滤镜失败:', e);
                         }
-                        tempCtx.drawImage(photoImg, 0, 0, photoWidth, photoHeight);
-                        tempCtx.filter = 'none';
+                    }
 
-                        // 绘制照片
-                        finalCtx.save();
-                        roundRect(finalCtx, padding, currentY, photoWidth, photoHeight, 12, false, true);
-                        finalCtx.clip();
-                        finalCtx.drawImage(tempCanvas, padding, currentY);
-                        finalCtx.restore();
+                    // 绘制到最终canvas
+                    finalCtx.save();
+                    roundRect(finalCtx, padding, currentY, photoWidth, photoHeight, 12, false, true);
+                    finalCtx.clip();
+                    finalCtx.drawImage(tempCanvas, padding, currentY);
+                    finalCtx.restore();
 
-                        // 更新Y位置
-                        currentY += photoHeight + padding;
+                    // 更新Y位置
+                    currentY += photoHeight + padding;
 
-                        resolve();
-                    };
-                    photoImg.src = photoData;
-                });
-            });
+                    // 处理下一张照片
+                    statusText.textContent = `处理照片 ${index + 1}/4...`;
+                    processNextPhoto(index + 1);
+                };
 
-            // 所有照片处理完成后创建下载链接
-            Promise.all(photoPromises).then(() => {
-                const downloadLink = document.createElement('a');
-                downloadLink.href = finalCanvas.toDataURL('image/png');
-                downloadLink.download = `${fileName}.png`;
+                // 确保src在onload之后设置
+                photoImg.src = photoData;
+            };
 
-                document.body.appendChild(downloadLink);
-                downloadLink.click();
-                document.body.removeChild(downloadLink);
-
-                statusText.textContent = '大头贴已保存';
-            });
+            // 开始处理第一张照片
+            processNextPhoto(0);
         });
     }
 
