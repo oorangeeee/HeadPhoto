@@ -518,6 +518,13 @@ document.addEventListener('DOMContentLoaded', () => {
         colorInput.type = 'color';
         colorInput.id = 'backgroundColorPicker';
         colorInput.value = backgroundColor;
+        colorInput.style.display = 'none'; // 隐藏原始颜色选择器
+
+        // 添加点击圆圈打开颜色选择器的事件
+        colorPreview.addEventListener('click', () => {
+            colorInput.click();
+        });
+
         colorInput.addEventListener('input', (e) => {
             backgroundColor = e.target.value;
             colorPreview.style.backgroundColor = backgroundColor;
