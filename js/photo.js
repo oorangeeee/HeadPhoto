@@ -12,12 +12,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadButton = document.getElementById('downloadButton');
     const resetButton = document.getElementById('resetButton');
 
-    // 照片槽位
-    const photoSlot1 = document.getElementById('photoSlot1');
-    const photoSlot2 = document.getElementById('photoSlot2');
-    const photoSlot3 = document.getElementById('photoSlot3');
-    const photoSlot4 = document.getElementById('photoSlot4');
-    const photoSlots = [photoSlot1, photoSlot2, photoSlot3, photoSlot4];
+    // 新的照片显示容器
+    const photosDisplay = document.getElementById('photosDisplay');
 
     let isInitializing = false;
     let photoCount = 0;
@@ -329,8 +325,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const photoData = canvas.toDataURL('image/png');
         photoDataArray.push(photoData);
 
-        // 更新照片槽位显示
-        updatePhotoSlot(photoCount, photoData);
+        // 更新照片显示
+        appendCapturedPhoto(photoData);
 
         photoCount++;
 
@@ -345,20 +341,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function updatePhotoSlot(index, photoData) {
-        // 创建图片并添加到对应槽位
+    // 新的函数：添加拍摄的照片到显示区
+    function appendCapturedPhoto(photoData) {
+        const photoDiv = document.createElement('div');
+        photoDiv.className = 'captured-photo';
+
         const img = document.createElement('img');
         img.src = photoData;
-        img.style.objectFit = 'cover'; // 改为cover以完全填充槽位
-        // 添加翻转以保持与视频相同的镜像效果
-        img.style.transform = 'scaleX(-1)';
 
-        // 清除槽位内容并添加图片
-        while (photoSlots[index].firstChild) {
-            photoSlots[index].removeChild(photoSlots[index].firstChild);
-        }
-
-        photoSlots[index].appendChild(img);
+        photoDiv.appendChild(img);
+        photosDisplay.appendChild(photoDiv);
     }
 
     function mergePhotos() {
@@ -398,43 +390,47 @@ document.addEventListener('DOMContentLoaded', () => {
                 [padding, padding + (photoHeight + padding) * 3]  // 第四张照片
             ];
 
-            // 绘制四张照片
-            photoDataArray.forEach((photoData, index) => {
-                const img = new Image();
-                img.onload = () => {
-                    const [x, y] = positions[index];
+            // 使用Promise.all确保所有照片都加载完成
+            const imagePromises = photoDataArray.map((photoData, index) => {
+                return new Promise((resolve) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const [x, y] = positions[index];
 
-                    // 使用完整图片，不做任何裁剪
-                    const drawWidth = photoWidth;
-                    const drawHeight = photoHeight;
+                        // 使用完整图片，不做任何裁剪
+                        const drawWidth = photoWidth;
+                        const drawHeight = photoHeight;
 
-                    // 绘制背景和边框
-                    mCtx.fillStyle = '#ffffff';
-                    roundRect(mCtx, x, y, photoWidth, photoHeight, 12, true, false);
+                        // 绘制背景和边框
+                        mCtx.fillStyle = '#ffffff';
+                        roundRect(mCtx, x, y, photoWidth, photoHeight, 12, true, false);
 
-                    // 在圆角矩形内绘制照片 (使用裁剪区域确保照片在圆角内)
-                    mCtx.save();
-                    roundRect(mCtx, x, y, photoWidth, photoHeight, 12, false, true);
-                    mCtx.clip();
-                    mCtx.drawImage(img, x, y, drawWidth, drawHeight);
-                    mCtx.restore();
+                        // 在圆角矩形内绘制照片 (使用裁剪区域确保照片在圆角内)
+                        mCtx.save();
+                        roundRect(mCtx, x, y, photoWidth, photoHeight, 12, false, true);
+                        mCtx.clip();
+                        mCtx.drawImage(img, x, y, drawWidth, drawHeight);
+                        mCtx.restore();
 
-                    // 如果是最后一张照片绘制完成，则更新合并后的图片并应用滤镜
-                    if (index === 3) {
-                        // 先显示基本合并图
-                        mergedPhoto.src = mergedCanvas.toDataURL('image/png');
-                        mergedPhoto.style.display = 'block';
+                        resolve();
+                    };
+                    img.src = photoData;
+                });
+            });
 
-                        // 显示滤镜面板
-                        document.getElementById('filterPanel').style.display = 'block';
+            // 所有照片绘制完成后，更新显示
+            Promise.all(imagePromises).then(() => {
+                // 先显示基本合并图
+                mergedPhoto.src = mergedCanvas.toDataURL('image/png');
+                mergedPhoto.style.display = 'block';
 
-                        // 应用当前选择的滤镜
-                        if (currentFilter !== 'normal') {
-                            applyFilterToPreview();
-                        }
-                    }
-                };
-                img.src = photoData;
+                // 显示滤镜面板
+                document.getElementById('filterPanel').style.display = 'block';
+
+                // 应用当前选择的滤镜
+                if (currentFilter !== 'normal') {
+                    applyFilterToPreview();
+                }
             });
         };
         firstPhotoImg.src = photoDataArray[0];
@@ -567,7 +563,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return filterPanel;
     }
 
-    // 新增函数：应用滤镜到预览图上
+    // 修改 applyFilterToPreview 函数也使用 Promise.all
     function applyFilterToPreview() {
         if (photoCount < 4 || !mergedCanvas) return;
 
@@ -600,57 +596,58 @@ document.addEventListener('DOMContentLoaded', () => {
             [padding, padding + (photoHeight + padding) * 3]
         ];
 
-        // 收集所有照片并应用滤镜
-        let loadedCount = 0;
+        // 使用Promise.all确保所有照片都加载并应用滤镜
+        const photoPromises = photoDataArray.map((photoData, index) => {
+            return new Promise((resolve) => {
+                const photoImg = new Image();
+                photoImg.onload = () => {
+                    const [x, y] = positions[index];
 
-        photoDataArray.forEach((photoData, index) => {
-            const photoImg = new Image();
-            photoImg.onload = () => {
-                const [x, y] = positions[index];
+                    // 创建临时canvas应用滤镜
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = photoWidth;
+                    tempCanvas.height = photoHeight;
+                    const tempCtx = tempCanvas.getContext('2d');
 
-                // 不再单独绘制白色背景，直接将照片与背景接触
-                // 创建临时canvas应用滤镜
-                const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = photoWidth;
-                tempCanvas.height = photoHeight;
-                const tempCtx = tempCanvas.getContext('2d');
+                    // 计算保持原始比例的尺寸
+                    const originalRatio = photoImg.width / photoImg.height;
+                    let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
 
-                // 计算保持原始比例的尺寸
-                const originalRatio = photoImg.width / photoImg.height;
-                let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
+                    if (originalRatio > (photoWidth / photoHeight)) {
+                        drawHeight = photoHeight;
+                        drawWidth = drawHeight * originalRatio;
+                        offsetX = (photoWidth - drawWidth) / 2;
+                    } else {
+                        drawWidth = photoWidth;
+                        drawHeight = drawWidth / originalRatio;
+                        offsetY = (photoHeight - drawHeight) / 2;
+                    }
 
-                if (originalRatio > (photoWidth / photoHeight)) {
-                    drawHeight = photoHeight;
-                    drawWidth = drawHeight * originalRatio;
-                    offsetX = (photoWidth - drawWidth) / 2;
-                } else {
-                    drawWidth = photoWidth;
-                    drawHeight = drawWidth / originalRatio;
-                    offsetY = (photoHeight - drawHeight) / 2;
-                }
+                    // 应用滤镜效果
+                    if (selectedFilter && currentFilter !== 'normal') {
+                        tempCtx.filter = selectedFilter.css;
+                    }
 
-                // 应用滤镜效果
-                if (selectedFilter && currentFilter !== 'normal') {
-                    tempCtx.filter = selectedFilter.css;
-                }
+                    tempCtx.drawImage(photoImg, offsetX, offsetY, drawWidth, drawHeight);
+                    tempCtx.filter = 'none';
 
-                tempCtx.drawImage(photoImg, offsetX, offsetY, drawWidth, drawHeight);
-                tempCtx.filter = 'none';
+                    // 在圆角矩形内绘制滤镜后的照片
+                    previewCtx.save();
+                    roundRect(previewCtx, x, y, photoWidth, photoHeight, 12, false, true);
+                    previewCtx.clip();
+                    previewCtx.drawImage(tempCanvas, x, y);
+                    previewCtx.restore();
 
-                // 在圆角矩形内绘制滤镜后的照片
-                previewCtx.save();
-                roundRect(previewCtx, x, y, photoWidth, photoHeight, 12, false, true);
-                previewCtx.clip();
-                previewCtx.drawImage(tempCanvas, x, y);
-                previewCtx.restore();
+                    resolve();
+                };
+                photoImg.src = photoData;
+            });
+        });
 
-                loadedCount++;
-                if (loadedCount === 4) {
-                    // 更新预览图
-                    mergedPhoto.src = previewCanvas.toDataURL('image/png');
-                }
-            };
-            photoImg.src = photoData;
+        // 所有照片处理完成后更新预览
+        Promise.all(photoPromises).then(() => {
+            // 更新预览图
+            mergedPhoto.src = previewCanvas.toDataURL('image/png');
         });
     }
 
@@ -701,63 +698,66 @@ document.addEventListener('DOMContentLoaded', () => {
                 [padding, padding + (photoHeight + padding) * 3]
             ];
 
-            // 收集所有照片并应用滤镜
-            let loadedCount = 0;
-            photoDataArray.forEach((photoData, index) => {
-                const photoImg = new Image();
-                photoImg.onload = () => {
-                    const [x, y] = positions[index];
+            // 使用Promise.all确保所有照片加载和处理完成
+            const photoPromises = photoDataArray.map((photoData, index) => {
+                return new Promise((resolve) => {
+                    const photoImg = new Image();
+                    photoImg.onload = () => {
+                        const [x, y] = positions[index];
 
-                    // 创建临时canvas应用滤镜
-                    const tempCanvas = document.createElement('canvas');
-                    tempCanvas.width = photoWidth;
-                    tempCanvas.height = photoHeight;
-                    const tempCtx = tempCanvas.getContext('2d');
+                        // 创建临时canvas应用滤镜
+                        const tempCanvas = document.createElement('canvas');
+                        tempCanvas.width = photoWidth;
+                        tempCanvas.height = photoHeight;
+                        const tempCtx = tempCanvas.getContext('2d');
 
-                    // 计算保持原始比例的尺寸
-                    const originalRatio = photoImg.width / photoImg.height;
-                    let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
+                        // 计算保持原始比例的尺寸
+                        const originalRatio = photoImg.width / photoImg.height;
+                        let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
 
-                    if (originalRatio > (photoWidth / photoHeight)) {
-                        drawHeight = photoHeight;
-                        drawWidth = drawHeight * originalRatio;
-                        offsetX = (photoWidth - drawWidth) / 2;
-                    } else {
-                        drawWidth = photoWidth;
-                        drawHeight = drawWidth / originalRatio;
-                        offsetY = (photoHeight - drawHeight) / 2;
-                    }
+                        if (originalRatio > (photoWidth / photoHeight)) {
+                            drawHeight = photoHeight;
+                            drawWidth = drawHeight * originalRatio;
+                            offsetX = (photoWidth - drawWidth) / 2;
+                        } else {
+                            drawWidth = photoWidth;
+                            drawHeight = drawWidth / originalRatio;
+                            offsetY = (photoHeight - drawHeight) / 2;
+                        }
 
-                    // 应用滤镜效果
-                    if (selectedFilter && currentFilter !== 'normal') {
-                        tempCtx.filter = selectedFilter.css;
-                    }
-                    tempCtx.drawImage(photoImg, offsetX, offsetY, drawWidth, drawHeight);
-                    tempCtx.filter = 'none';
+                        // 应用滤镜效果
+                        if (selectedFilter && currentFilter !== 'normal') {
+                            tempCtx.filter = selectedFilter.css;
+                        }
+                        tempCtx.drawImage(photoImg, offsetX, offsetY, drawWidth, drawHeight);
+                        tempCtx.filter = 'none';
 
-                    // 在圆角矩形内绘制滤镜后的照片
-                    finalCtx.save();
-                    roundRect(finalCtx, x, y, photoWidth, photoHeight, 12, false, true);
-                    finalCtx.clip();
-                    finalCtx.drawImage(tempCanvas, x, y);
-                    finalCtx.restore();
+                        // 在圆角矩形内绘制滤镜后的照片
+                        finalCtx.save();
+                        roundRect(finalCtx, x, y, photoWidth, photoHeight, 12, false, true);
+                        finalCtx.clip();
+                        finalCtx.drawImage(tempCanvas, x, y);
+                        finalCtx.restore();
 
-                    loadedCount++;
-                    if (loadedCount === 4) {
-                        // 创建下载链接
-                        const downloadLink = document.createElement('a');
-                        downloadLink.href = finalCanvas.toDataURL('image/png');
-                        downloadLink.download = `${fileName}.png`;
+                        resolve();
+                    };
+                    photoImg.src = photoData;
+                });
+            });
 
-                        // 触发下载
-                        document.body.appendChild(downloadLink);
-                        downloadLink.click();
-                        document.body.removeChild(downloadLink);
+            // 所有照片处理完成后创建下载链接
+            Promise.all(photoPromises).then(() => {
+                // 创建下载链接
+                const downloadLink = document.createElement('a');
+                downloadLink.href = finalCanvas.toDataURL('image/png');
+                downloadLink.download = `${fileName}.png`;
 
-                        statusText.textContent = '大头贴已保存';
-                    }
-                };
-                photoImg.src = photoData;
+                // 触发下载
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+
+                statusText.textContent = '大头贴已保存';
             });
         };
         firstPhotoImg.src = photoDataArray[0];
@@ -768,18 +768,10 @@ document.addEventListener('DOMContentLoaded', () => {
         photoCount = 0;
         photoDataArray = [];
 
-        // 重置照片槽位
-        photoSlots.forEach(slot => {
-            // 移除所有子元素
-            while (slot.firstChild) {
-                slot.removeChild(slot.firstChild);
-            }
-
-            // 添加数字标记
-            const span = document.createElement('span');
-            span.textContent = photoSlots.indexOf(slot) + 1;
-            slot.appendChild(span);
-        });
+        // 清空照片显示区
+        while (photosDisplay.firstChild) {
+            photosDisplay.removeChild(photosDisplay.firstChild);
+        }
 
         // 重置UI状态
         mergedPhoto.style.display = 'none';
