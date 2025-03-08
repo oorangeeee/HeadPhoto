@@ -306,3 +306,46 @@ body {
         grid-template-columns: repeat(3, 1fr);
     }
 }
+
+/* 颜色选择器样式 */
+.color-section {
+    margin-top: 20px;
+    border-top: 1px solid #e6e6e6;
+    padding-top: 15px;
+}
+
+.color-picker-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.color-preview {
+    width: 40px;
+    height: 40px;
+    border-radius: 20px;
+    border: 1px solid #d2d2d7;
+    margin-right: 10px;
+    transition: all 0.2s ease;
+}
+
+#backgroundColorPicker {
+    width: 60px;
+    height: 40px;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+
+/* 适配不同浏览器的颜色选择器样式 */
+#backgroundColorPicker::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+#backgroundColorPicker::-webkit-color-swatch {
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}

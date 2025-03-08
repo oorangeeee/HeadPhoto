@@ -44,16 +44,57 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 添加滤镜相关变量
     let currentFilter = 'normal';
+    let backgroundColor = '#f5f5f7'; // 添加背景颜色变量，默认为浅灰色
     const filterOptions = [
-        { id: 'normal', name: '原图', css: '' },
-        { id: 'grayscale', name: '黑白', css: 'grayscale(100%)' },
-        { id: 'sepia', name: '复古', css: 'sepia(80%)' },
-        { id: 'brightness', name: '明亮', css: 'brightness(130%)' },
-        { id: 'contrast', name: '高对比度', css: 'contrast(150%)' },
-        { id: 'blur', name: '模糊', css: 'blur(2px)' },
-        { id: 'saturate', name: '饱和', css: 'saturate(200%)' },
-        { id: 'warm', name: '暖色', css: 'sepia(30%) saturate(150%) hue-rotate(-10deg)' },
-        { id: 'cool', name: '冷色', css: 'sepia(20%) saturate(80%) hue-rotate(180deg)' }
+        // 基础类优化
+        { id: 'normal', name: '原图', css: 'brightness(102%) contrast(102%)' }, // 微调提升画面通透感
+
+        // 专业级单色滤镜
+        { id: 'monochrome', name: '银盐', css: 'grayscale(100%) contrast(120%) brightness(98%)' }, // 模拟胶片黑白
+
+        // 高级复合滤镜
+        {
+            id: 'vintage', name: '胶片', css:
+                'sepia(40%) hue-rotate(-10deg) contrast(110%) saturate(120%) brightness(105%)'
+        }, // 柯达胶片风格
+
+        {
+            id: 'cinematic', name: '电影', css:
+                'contrast(130%) brightness(95%) saturate(110%) hue-rotate(5deg)'
+        }, // 电影级调色
+
+        // 现代流行风格
+        {
+            id: 'clarendon', name: '克莱顿', css:
+                'contrast(120%) saturate(180%) brightness(105%)'
+        }, // Instagram流行风格
+
+        {
+            id: 'juno', name: '朱诺', css:
+                'contrast(110%) saturate(140%) sepia(20%) hue-rotate(-15deg)'
+        }, // VSCO经典滤镜
+
+        // 环境光效优化
+        {
+            id: 'sunset', name: '黄昏', css:
+                'hue-rotate(-20deg) saturate(130%) contrast(115%) brightness(95%)'
+        }, // 暖色调晚霞效果
+
+        {
+            id: 'moonlight', name: '月光', css:
+                'brightness(85%) contrast(125%) hue-rotate(200deg) saturate(80%)'
+        }, // 冷色月光效果
+
+        // 特殊效果
+        {
+            id: 'soft-focus', name: '柔焦', css:
+                'blur(1px) contrast(150%) brightness(105%)'
+        }, // 人像柔肤效果
+
+        {
+            id: 'dramatic', name: '戏剧', css:
+                'contrast(200%) brightness(80%) saturate(150%)'
+        } // 高反差艺术效果
     ];
 
     async function checkCameraSupport() {
@@ -329,8 +370,8 @@ document.addEventListener('DOMContentLoaded', () => {
         mCtx.fillStyle = 'white';
         mCtx.fillRect(0, 0, mergedWidth, mergedHeight);
 
-        // 绘制圆角矩形作为背景
-        mCtx.fillStyle = '#f5f5f7';
+        // 绘制圆角矩形作为背景，使用用户选择的颜色
+        mCtx.fillStyle = backgroundColor;
         roundRect(mCtx, 0, 0, mergedWidth, mergedHeight, cornerRadius, true, false);
 
         // 计算每个照片的位置 (竖向排列)
@@ -457,6 +498,37 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         filterPanel.appendChild(filterGrid);
+
+        // 添加背景颜色选择部分
+        const colorSection = document.createElement('div');
+        colorSection.className = 'color-section';
+
+        const colorTitle = document.createElement('h3');
+        colorTitle.textContent = '选择背景颜色';
+        colorSection.appendChild(colorTitle);
+
+        const colorPickerContainer = document.createElement('div');
+        colorPickerContainer.className = 'color-picker-container';
+
+        const colorPreview = document.createElement('div');
+        colorPreview.className = 'color-preview';
+        colorPreview.style.backgroundColor = backgroundColor;
+
+        const colorInput = document.createElement('input');
+        colorInput.type = 'color';
+        colorInput.id = 'backgroundColorPicker';
+        colorInput.value = backgroundColor;
+        colorInput.addEventListener('input', (e) => {
+            backgroundColor = e.target.value;
+            colorPreview.style.backgroundColor = backgroundColor;
+            mergePhotos(); // 实时更新背景颜色
+        });
+
+        colorPickerContainer.appendChild(colorPreview);
+        colorPickerContainer.appendChild(colorInput);
+        colorSection.appendChild(colorPickerContainer);
+
+        filterPanel.appendChild(colorSection);
 
         // 将滤镜面板添加到DOM
         const container = document.querySelector('.container');
