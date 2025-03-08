@@ -1,0 +1,26 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Install SSH client and sshpass
+      run: sudo apt-get install -y openssh-client sshpass
+
+    - name: Deploy to server
+      env:
+        SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+      run: |
+        mkdir -p ~/.ssh
+        echo "$SSH_PASSWORD" > ~/.ssh/password
+        chmod 600 ~/.ssh/password
+        sshpass -f ~/.ssh/password ssh -o StrictHostKeyChecking=no root@${{ secrets.SSH_HOST }} 'cd /HeadPhoto/HeadPhoto && git pull '
