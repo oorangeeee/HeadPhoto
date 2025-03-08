@@ -157,6 +157,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleSuccess(stream) {
         video.srcObject = stream;
         video.style.display = 'block';
+        // 添加镜像效果
+        video.style.transform = 'scaleX(-1)';
         authButton.style.display = 'none';
         captureButton.style.display = 'block';
         statusText.textContent = '摄像头已启用，请拍摄4张照片';
@@ -313,9 +315,15 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
 
-        // 在canvas上绘制当前视频帧
+        // 在canvas上绘制当前视频帧（需要镜像处理）
         const context = canvas.getContext('2d');
+
+        // 镜像处理：先翻转坐标系，再绘制，这样保存的照片也是镜像的
+        context.translate(canvas.width, 0);
+        context.scale(-1, 1);
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        // 恢复坐标系，以免影响后续绘制
+        context.setTransform(1, 0, 0, 1, 0, 0);
 
         // 获取照片数据URL
         const photoData = canvas.toDataURL('image/png');
