@@ -23,6 +23,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let photoCount = 0;
     let photoDataArray = [];
 
+    // 添加新元素
+    let timerContainer, timerSelect, countdownDisplay;
+    createTimerElements();
+
     // 初始化检测
     checkCameraSupport();
 
@@ -30,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     authButton.addEventListener('click', handleAuthClick);
 
     // 拍照按钮点击事件
-    captureButton.addEventListener('click', takePhoto);
+    captureButton.addEventListener('click', startTimedCapture);
 
     // 下载按钮点击事件
     downloadButton.addEventListener('click', downloadPhoto);
@@ -136,7 +140,46 @@ document.addEventListener('DOMContentLoaded', () => {
         statusText.textContent = '';
     }
 
-    function takePhoto() {
+    // 创建延时元素
+    function createTimerElements() {
+        // 创建容器
+        timerContainer = document.createElement('div');
+        timerContainer.id = 'timerContainer';
+
+        // 创建标签
+        const label = document.createElement('span');
+        label.className = 'timer-label';
+        label.textContent = '延时时间(秒):';
+
+        // 创建选择器
+        timerSelect = document.createElement('select');
+        timerSelect.id = 'timerSelect';
+
+        // 添加选项 1-300
+        for (let i = 1; i <= 300; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = i;
+            if (i === 3) option.selected = true; // 默认3秒
+            timerSelect.appendChild(option);
+        }
+
+        // 创建倒计时显示
+        countdownDisplay = document.createElement('div');
+        countdownDisplay.id = 'countdownDisplay';
+
+        // 组装元素
+        timerContainer.appendChild(label);
+        timerContainer.appendChild(timerSelect);
+
+        // 添加到DOM
+        captureButton.textContent = '开始'; // 将"拍照"改为"开始"
+        captureButton.after(timerContainer);
+        timerContainer.after(countdownDisplay);
+    }
+
+    // 启动延时拍照
+    function startTimedCapture() {
         if (!video.srcObject) {
             showError('摄像头未启用');
             return;
@@ -147,6 +190,57 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // 隐藏开始按钮和计时器选择
+        captureButton.style.display = 'none';
+        timerContainer.style.display = 'none';
+
+        // 获取延时时间
+        const delaySeconds = parseInt(timerSelect.value);
+
+        // 显示倒计时
+        countdownDisplay.style.display = 'block';
+
+        // 开始倒计时并拍照
+        takePhotoWithCountdown(delaySeconds);
+    }
+
+    // 倒计时拍照
+    function takePhotoWithCountdown(seconds) {
+        let remaining = seconds;
+
+        // 确保倒计时显示是可见的
+        countdownDisplay.style.display = 'block';
+
+        // 更新倒计时显示
+        countdownDisplay.textContent = `${remaining}`;
+
+        const countdownInterval = setInterval(() => {
+            remaining--;
+
+            if (remaining <= 0) {
+                clearInterval(countdownInterval);
+                countdownDisplay.style.display = 'none';
+
+                // 拍照
+                takePhotoNow();
+
+                // 如果还需要更多照片，继续倒计时拍摄
+                if (photoCount < 4) {
+                    setTimeout(() => {
+                        takePhotoWithCountdown(seconds);
+                    }, 500); // 短暂延迟后开始下一张
+                } else {
+                    // 全部拍完后，显示文件名输入框和下载按钮
+                    countdownDisplay.style.display = 'none';
+                }
+            } else {
+                countdownDisplay.textContent = `${remaining}`;
+            }
+        }, 1000);
+    }
+
+    // 实际拍照功能
+    function takePhotoNow() {
         // 设置canvas大小与视频相同
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
@@ -337,6 +431,11 @@ document.addEventListener('DOMContentLoaded', () => {
         mergedPhoto.style.display = 'none';
         fileNameInput.style.display = 'none';
         downloadButton.style.display = 'none';
+        countdownDisplay.style.display = 'none';
+
+        // 显示开始按钮和延时选择
+        captureButton.style.display = 'block';
+        timerContainer.style.display = 'flex';
 
         if (video.srcObject) {
             statusText.textContent = '请拍摄4张照片';

@@ -192,6 +192,38 @@ body {
     display: none;
 }
 
+#timerContainer {
+    display: flex;
+    align-items: center;
+    margin: 10px 0;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+}
+
+#timerSelect {
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #d2d2d7;
+    font-size: 14px;
+    margin: 0 10px;
+    width: 80px;
+}
+
+#countdownDisplay {
+    font-size: 32px;
+    font-weight: bold;
+    color: #0071e3;
+    margin: 15px auto;
+    display: none;
+    text-align: center;
+}
+
+.timer-label {
+    font-size: 14px;
+    color: #6e6e73;
+}
+
 @media (max-width: 768px) {
     .main-content {
         flex-direction: column;
