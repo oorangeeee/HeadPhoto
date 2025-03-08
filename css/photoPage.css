@@ -235,3 +235,74 @@ body {
         height: auto;
     }
 }
+
+/* 滤镜面板样式 */
+.filter-panel {
+    width: 100%;
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 15px;
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.filter-panel h3 {
+    margin-top: 0;
+    color: #1d1d1f;
+    font-weight: 500;
+}
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.filter-item {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    padding: 5px;
+    user-select: none;
+}
+
+.filter-item:hover {
+    background-color: #f5f5f7;
+    transform: translateY(-2px);
+}
+
+.filter-item.active {
+    background-color: #e6f2ff;
+    border: 2px solid #0071e3;
+}
+
+.filter-preview {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto;
+    border-radius: 6px;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50"><rect width="50" height="50" fill="%23f5f5f7"/><circle cx="25" cy="20" r="10" fill="%23a1a1a6"/><path d="M10,40 L40,40 C35,30 15,30 10,40 Z" fill="%23a1a1a6"/></svg>');
+    background-size: cover;
+    overflow: hidden;
+}
+
+.filter-name {
+    font-size: 12px;
+    margin-top: 5px;
+    color: #6e6e73;
+}
+
+@media (max-width: 768px) {
+    .filter-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .filter-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}

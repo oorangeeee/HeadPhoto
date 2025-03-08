@@ -42,6 +42,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // 重置按钮点击事件
     resetButton.addEventListener('click', resetPhotos);
 
+    // 添加滤镜相关变量
+    let currentFilter = 'normal';
+    const filterOptions = [
+        { id: 'normal', name: '原图', css: '' },
+        { id: 'grayscale', name: '黑白', css: 'grayscale(100%)' },
+        { id: 'sepia', name: '复古', css: 'sepia(80%)' },
+        { id: 'brightness', name: '明亮', css: 'brightness(130%)' },
+        { id: 'contrast', name: '高对比度', css: 'contrast(150%)' },
+        { id: 'blur', name: '模糊', css: 'blur(2px)' },
+        { id: 'saturate', name: '饱和', css: 'saturate(200%)' },
+        { id: 'warm', name: '暖色', css: 'sepia(30%) saturate(150%) hue-rotate(-10deg)' },
+        { id: 'cool', name: '冷色', css: 'sepia(20%) saturate(80%) hue-rotate(180deg)' }
+    ];
+
     async function checkCameraSupport() {
         try {
             const hasCamera = await checkCameraPermission();
@@ -364,6 +378,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (index === 3) {
                     mergedPhoto.src = mergedCanvas.toDataURL('image/png');
                     mergedPhoto.style.display = 'block';
+
+                    // 显示滤镜面板
+                    document.getElementById('filterPanel').style.display = 'block';
+
+                    // 设置默认滤镜
+                    currentFilter = 'normal';
+                    applyFilter();
                 }
             };
             img.src = photoData;
@@ -396,6 +417,66 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // 创建滤镜选择界面
+    function createFilterPanel() {
+        const filterPanel = document.createElement('div');
+        filterPanel.id = 'filterPanel';
+        filterPanel.className = 'filter-panel';
+        filterPanel.style.display = 'none';
+
+        const filterTitle = document.createElement('h3');
+        filterTitle.textContent = '选择滤镜';
+        filterPanel.appendChild(filterTitle);
+
+        const filterGrid = document.createElement('div');
+        filterGrid.className = 'filter-grid';
+
+        filterOptions.forEach(filter => {
+            const filterItem = document.createElement('div');
+            filterItem.className = 'filter-item';
+            filterItem.dataset.filter = filter.id;
+
+            const filterPreview = document.createElement('div');
+            filterPreview.className = 'filter-preview';
+            filterPreview.style.filter = filter.css;
+
+            const filterName = document.createElement('div');
+            filterName.className = 'filter-name';
+            filterName.textContent = filter.name;
+
+            filterItem.appendChild(filterPreview);
+            filterItem.appendChild(filterName);
+
+            // 添加滤镜选择事件
+            filterItem.addEventListener('click', () => {
+                document.querySelectorAll('.filter-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                filterItem.classList.add('active');
+                currentFilter = filter.id;
+                applyFilter();
+            });
+
+            filterGrid.appendChild(filterItem);
+        });
+
+        filterPanel.appendChild(filterGrid);
+
+        // 将滤镜面板添加到DOM
+        const container = document.querySelector('.container');
+        container.insertBefore(filterPanel, document.querySelector('.storage-container'));
+
+        return filterPanel;
+    }
+
+    // 应用选择的滤镜
+    function applyFilter() {
+        const selectedFilter = filterOptions.find(f => f.id === currentFilter);
+        if (selectedFilter) {
+            mergedPhoto.style.filter = selectedFilter.css;
+        }
+    }
+
     function downloadPhoto() {
         if (photoCount < 4) {
             showError('请先拍摄4张照片');
@@ -409,17 +490,42 @@ document.addEventListener('DOMContentLoaded', () => {
             fileName = `photobooth_${now.getTime()}`;
         }
 
-        // 创建下载链接
-        const downloadLink = document.createElement('a');
-        downloadLink.href = mergedPhoto.src;
-        downloadLink.download = `${fileName}.png`;
+        // 创建一个新的canvas来应用滤镜效果
+        const filterCanvas = document.createElement('canvas');
+        filterCanvas.width = mergedCanvas.width;
+        filterCanvas.height = mergedCanvas.height;
+        const filterCtx = filterCanvas.getContext('2d');
 
-        // 触发下载
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        document.body.removeChild(downloadLink);
+        // 创建一个临时图像来获取带滤镜的图像
+        const tempImg = new Image();
+        tempImg.onload = () => {
+            // 绘制原始图像
+            filterCtx.drawImage(tempImg, 0, 0);
 
-        statusText.textContent = '大头贴已保存';
+            // 应用滤镜效果(如果不是normal)
+            if (currentFilter !== 'normal') {
+                const selectedFilter = filterOptions.find(f => f.id === currentFilter);
+                if (selectedFilter) {
+                    // 使用CSS滤镜
+                    filterCtx.filter = selectedFilter.css;
+                    filterCtx.drawImage(tempImg, 0, 0);
+                    filterCtx.filter = 'none';
+                }
+            }
+
+            // 创建下载链接
+            const downloadLink = document.createElement('a');
+            downloadLink.href = filterCanvas.toDataURL('image/png');
+            downloadLink.download = `${fileName}.png`;
+
+            // 触发下载
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+
+            statusText.textContent = '大头贴已保存';
+        };
+        tempImg.src = mergedPhoto.src;
     }
 
     function resetPhotos() {
@@ -453,6 +559,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (video.srcObject) {
             statusText.textContent = '请拍摄4张照片';
         }
+
+        // 隐藏滤镜面板
+        document.getElementById('filterPanel').style.display = 'none';
     }
 
     // 页面可见性处理
@@ -461,4 +570,7 @@ document.addEventListener('DOMContentLoaded', () => {
             video.srcObject.getTracks().forEach(track => track.stop());
         }
     });
+
+    // 创建滤镜面板
+    createFilterPanel();
 });
