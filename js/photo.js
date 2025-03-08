@@ -470,20 +470,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
             filterItem.appendChild(filterName);
 
-            // 添加滤镜选择事件
-            filterItem.addEventListener('click', () => {
-                document.querySelectorAll('.filter-item').forEach(item => {
-                    item.classList.remove('active');
-                });
-                filterItem.classList.add('active');
-                currentFilter = filter.id;
-
-                // 实时应用滤镜到预览图上
-                applyFilterToPreview();
+            // 添加滤镜选择事件 - 同时支持点击和触摸
+            filterItem.addEventListener('click', function (e) {
+                e.preventDefault(); // 防止事件冒泡
+                selectFilter(this, filter.id);
             });
+
+            // 添加触摸支持
+            filterItem.addEventListener('touchend', function (e) {
+                e.preventDefault(); // 防止触摸事件转换为点击事件
+                selectFilter(this, filter.id);
+            }, false);
 
             filterGrid.appendChild(filterItem);
         });
+
+        // 选择滤镜的辅助函数
+        function selectFilter(element, filterId) {
+            document.querySelectorAll('.filter-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            element.classList.add('active');
+            currentFilter = filterId;
+
+            // 实时应用滤镜到预览图上
+            applyFilterToPreview();
+        }
 
         filterPanel.appendChild(filterGrid);
 
@@ -502,6 +514,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const colorPreview = document.createElement('div');
         colorPreview.className = 'color-preview';
         colorPreview.style.backgroundColor = backgroundColor;
+        colorPreview.style.width = '40px';
+        colorPreview.style.height = '40px';
+        colorPreview.style.borderRadius = '50%';
+        colorPreview.style.cursor = 'pointer';
+        colorPreview.style.border = '2px solid #ccc';
+        colorPreview.style.display = 'inline-block';
 
         const colorInput = document.createElement('input');
         colorInput.type = 'color';
@@ -512,28 +530,54 @@ document.addEventListener('DOMContentLoaded', () => {
         colorInput.style.opacity = '0';
         colorInput.style.left = '0';
         colorInput.style.top = '0';
-        colorInput.style.width = '40px';
-        colorInput.style.height = '40px';
+        colorInput.style.width = '100%';
+        colorInput.style.height = '100%';
         colorInput.style.cursor = 'pointer';
 
-        // 添加点击圆圈打开颜色选择器的事件
-        colorPreview.addEventListener('click', () => {
+        // 颜色值显示
+        const colorValueDisplay = document.createElement('span');
+        colorValueDisplay.textContent = backgroundColor;
+        colorValueDisplay.style.marginLeft = '10px';
+        colorValueDisplay.style.display = 'inline-block';
+        colorValueDisplay.style.verticalAlign = 'middle';
+
+        // 处理颜色选择器的兼容性问题
+        const handleColorChange = (e) => {
+            backgroundColor = e.target.value;
+            colorPreview.style.backgroundColor = backgroundColor;
+            colorValueDisplay.textContent = backgroundColor;
+
+            // 使用setTimeout确保UI更新后应用滤镜
+            setTimeout(() => {
+                // 保存当前滤镜设置
+                const currentFilterSetting = currentFilter;
+
+                // 重新生成带新背景的预览图
+                applyFilterToPreview();
+
+                console.log('背景色已更新:', backgroundColor);
+            }, 50);
+        };
+
+        // 添加点击和触摸事件
+        colorPreview.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('颜色预览被点击');
             colorInput.click();
         });
 
-        colorInput.addEventListener('input', (e) => {
-            backgroundColor = e.target.value;
-            colorPreview.style.backgroundColor = backgroundColor;
+        colorPreview.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            console.log('颜色预览被触摸');
+            colorInput.click();
+        }, false);
 
-            // 保存当前滤镜设置
-            const currentFilterSetting = currentFilter;
-
-            // 重新生成带新背景的预览图
-            applyFilterToPreview();
-        });
+        colorInput.addEventListener('input', handleColorChange);
+        colorInput.addEventListener('change', handleColorChange);
 
         colorPickerContainer.appendChild(colorPreview);
         colorPickerContainer.appendChild(colorInput);
+        colorPickerContainer.appendChild(colorValueDisplay);
         colorSection.appendChild(colorPickerContainer);
 
         filterPanel.appendChild(colorSection);
@@ -545,9 +589,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return filterPanel;
     }
 
-    // 修改 applyFilterToPreview 函数也使用 Promise.all
+    // 修改 applyFilterToPreview 函数，增加错误处理和日志
     function applyFilterToPreview() {
-        if (photoCount < 4 || !mergedCanvas) return;
+        if (photoCount < 4 || !mergedCanvas) {
+            console.log('无法应用滤镜: 照片不足或画布未准备');
+            return;
+        }
+
+        console.log('应用滤镜:', currentFilter, '背景色:', backgroundColor);
 
         // 创建一个新canvas用于预览
         const previewCanvas = document.createElement('canvas');
@@ -565,6 +614,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 获取选中的滤镜
         const selectedFilter = filterOptions.find(f => f.id === currentFilter);
+
+        if (selectedFilter) {
+            console.log('应用滤镜:', selectedFilter.name, selectedFilter.css);
+        }
 
         // 获取第一张照片的实际比例
         const photoWidth = 600;
