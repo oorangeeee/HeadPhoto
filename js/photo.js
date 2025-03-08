@@ -218,6 +218,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function takePhotoWithCountdown(seconds) {
         let remaining = seconds;
 
+        // 确保倒计时显示是可见的
+        countdownDisplay.style.display = 'block';
+
         // 更新倒计时显示
         countdownDisplay.textContent = `${remaining}`;
 
@@ -226,7 +229,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (remaining <= 0) {
                 clearInterval(countdownInterval);
-                countdownDisplay.style.display = 'none';
 
                 // 拍照
                 takePhotoNow();
@@ -237,8 +239,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         takePhotoWithCountdown(seconds);
                     }, 500); // 短暂延迟后开始下一张
                 } else {
-                    // 全部拍完后，显示文件名输入框和下载按钮
+                    // 全部拍完后，隐藏倒计时显示
                     countdownDisplay.style.display = 'none';
+
+                    // 显示文件名输入框和下载按钮
+                    fileNameInput.style.display = 'block';
+                    downloadButton.style.display = 'block';
                 }
             } else {
                 countdownDisplay.textContent = `${remaining}`;
