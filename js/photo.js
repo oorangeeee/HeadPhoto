@@ -37,6 +37,18 @@ document.addEventListener('DOMContentLoaded', () => {
             centerWidthRatio: 0.8,  // 中心区域宽度占比
             centerHeightRatio: 0.9, // 中心区域高度占比
             overlapThreshold: 0.3   // 允许重叠的最大比例
+        },
+        {
+            id: 'lemon',
+            name: '柠檬',
+            src: './image/柠檬.png',
+            minSize: 30,      // 最小尺寸(像素)
+            maxSize: 60,      // 最大尺寸(像素)
+            minCount: 50,     // 最少贴纸数量
+            maxCount: 100,    // 最多贴纸数量
+            centerWidthRatio: 0.8,  // 中心区域宽度占比
+            centerHeightRatio: 0.9, // 中心区域高度占比
+            overlapThreshold: 0.3   // 允许重叠的最大比例
         }
     ];
     let currentSticker = 'none';
