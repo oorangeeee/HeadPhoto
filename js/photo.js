@@ -26,7 +26,15 @@ document.addEventListener('DOMContentLoaded', () => {
     let stickers = [];
     const stickerOptions = [
         { id: 'none', name: '无贴纸', src: '' },
-        { id: 'orange', name: '橙子', src: './image/橙子.png' }
+        {
+            id: 'orange',
+            name: '橙子',
+            src: './image/橙子.png',
+            minSize: 30,      // 最小尺寸(像素)
+            maxSize: 60,      // 最大尺寸(像素)
+            minCount: 10,     // 最少贴纸数量
+            maxCount: 20      // 最多贴纸数量
+        }
     ];
     let currentSticker = 'none';
 
@@ -802,7 +810,7 @@ document.addEventListener('DOMContentLoaded', () => {
         stickerSection.className = 'sticker-section';
 
         const stickerTitle = document.createElement('h3');
-        stickerTitle.textContent = '选择贴纸';
+        stickerTitle.textContent = '选择贴纸(调试中)';
         stickerSection.appendChild(stickerTitle);
 
         const stickerGrid = document.createElement('div');
@@ -888,34 +896,36 @@ document.addEventListener('DOMContentLoaded', () => {
         // 清空现有贴纸
         stickers = [];
 
-        // 随机生成20-30个贴纸
-        const count = Math.floor(Math.random() * 11) + 20; // 20-30
+        // 使用配置的最小/最大数量
+        const minCount = stickerOption.minCount || 10;
+        const maxCount = stickerOption.maxCount || 20;
+        const count = Math.floor(Math.random() * (maxCount - minCount + 1)) + minCount;
 
         // 预加载贴纸图片以获取尺寸信息
         const img = new Image();
+        img.crossOrigin = 'anonymous';
+
+        // 改为一次性生成所有贴纸
         img.onload = () => {
-            // 计算合适的贴纸尺寸，控制在原图的10%-15%之间
-            const maxStickerSize = Math.min(mergedCanvas.width, mergedCanvas.height) * 0.15;
-            const baseSize = Math.min(maxStickerSize, Math.max(30, Math.min(img.width, img.height)));
+            // 使用自定义的最小和最大尺寸
+            const minSize = stickerOption.minSize || 30;
+            const maxSize = stickerOption.maxSize || Math.min(mergedCanvas.width, mergedCanvas.height) * 0.15;
 
             for (let i = 0; i < count; i++) {
-                // 随机确定贴纸大小 (原始尺寸的50%-100%)
-                const scale = 0.5 + Math.random() * 0.5;
-                const width = baseSize * scale;
+                // 在最小和最大尺寸之间随机选择
+                const width = minSize + Math.random() * (maxSize - minSize);
                 const height = (img.height / img.width) * width;
 
                 // 随机位置 - 只在边缘区域
                 let x, y;
-                const margin = width * 0.5; // 距离画布边缘的最小距离
-                const centerMargin = 0.3; // 中心区域的比例（避开的区域）
+                const margin = width * 0.5;
+                const centerMargin = 0.3;
 
-                // 确保贴纸不在中心区域
                 const centerX = mergedCanvas.width / 2;
                 const centerY = mergedCanvas.height / 2;
                 const centerWidth = mergedCanvas.width * centerMargin;
                 const centerHeight = mergedCanvas.height * centerMargin;
 
-                // 随机尝试找位置直到找到合适的位置
                 let attempts = 0;
                 const maxAttempts = 50;
 
@@ -924,11 +934,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     y = margin + Math.random() * (mergedCanvas.height - height - margin * 2);
                     attempts++;
 
-                    // 检查是否在中心区域
                     const inCenterX = Math.abs(x + width / 2 - centerX) < centerWidth / 2;
                     const inCenterY = Math.abs(y + height / 2 - centerY) < centerHeight / 2;
 
-                    // 如果不在中心区域，或者尝试太多次，就接受这个位置
                     if ((!inCenterX || !inCenterY) || attempts > maxAttempts) {
                         break;
                     }
@@ -950,7 +958,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 检查贴纸之间是否过度重叠
             reduceOverlapping();
 
-            // 更新预览
+            // 一次性更新预览
             applyFilterToPreview();
         };
 
@@ -1074,34 +1082,39 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
 
-            // 绘制贴纸
-            if (stickers.length > 0) {
-                drawStickers(previewCtx);
-            }
-
-            // 所有照片处理完成后更新预览
+            // 所有照片处理完成后，如果有贴纸再绘制贴纸
             Promise.all(processPromises).then(() => {
-                console.log('所有照片处理完成，更新预览图');
-                mergedPhoto.src = previewCanvas.toDataURL('image/png');
+                if (stickers.length > 0) {
+                    drawStickers(previewCtx);
+                } else {
+                    // 无贴纸直接更新预览
+                    mergedPhoto.src = previewCanvas.toDataURL('image/png');
+                }
             });
         });
     }
 
-    // 绘制贴纸到画布
+    // 绘制贴纸到画布 - 修改为同步方式
     function drawStickers(ctx) {
-        stickers.forEach(sticker => {
-            const img = new Image();
-            img.onload = () => {
-                ctx.save();
-                ctx.translate(sticker.x + sticker.width / 2, sticker.y + sticker.height / 2);
-                ctx.rotate(sticker.rotation * Math.PI / 180);
-                ctx.drawImage(img, -sticker.width / 2, -sticker.height / 2, sticker.width, sticker.height);
-                ctx.restore();
+        // 创建一个Promise数组来跟踪所有贴纸加载
+        const stickerPromises = stickers.map(sticker => {
+            return new Promise(resolve => {
+                const img = new Image();
+                img.onload = () => {
+                    ctx.save();
+                    ctx.translate(sticker.x + sticker.width / 2, sticker.y + sticker.height / 2);
+                    ctx.rotate(sticker.rotation * Math.PI / 180);
+                    ctx.drawImage(img, -sticker.width / 2, -sticker.height / 2, sticker.width, sticker.height);
+                    ctx.restore();
+                    resolve();
+                };
+                img.src = sticker.src;
+            });
+        });
 
-                // 更新预览
-                mergedPhoto.src = ctx.canvas.toDataURL('image/png');
-            };
-            img.src = sticker.src;
+        // 等待所有贴纸加载完毕后一次性更新预览
+        Promise.all(stickerPromises).then(() => {
+            mergedPhoto.src = ctx.canvas.toDataURL('image/png');
         });
     }
 
