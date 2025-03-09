@@ -911,36 +911,41 @@ document.addEventListener('DOMContentLoaded', () => {
             const minSize = stickerOption.minSize || 30;
             const maxSize = stickerOption.maxSize || Math.min(mergedCanvas.width, mergedCanvas.height) * 0.15;
 
+            // 定义中心区域和边缘区域的界限
+            const centerMargin = 0.3; // 中心区域占整个画布的比例
+            const centerX = mergedCanvas.width / 2;
+            const centerY = mergedCanvas.height / 2;
+            const centerWidth = mergedCanvas.width * centerMargin;
+            const centerHeight = mergedCanvas.height * centerMargin;
+
             for (let i = 0; i < count; i++) {
                 // 在最小和最大尺寸之间随机选择
                 const width = minSize + Math.random() * (maxSize - minSize);
                 const height = (img.height / img.width) * width;
 
-                // 随机位置 - 只在边缘区域
                 let x, y;
                 const margin = width * 0.5;
-                const centerMargin = 0.3;
-
-                const centerX = mergedCanvas.width / 2;
-                const centerY = mergedCanvas.height / 2;
-                const centerWidth = mergedCanvas.width * centerMargin;
-                const centerHeight = mergedCanvas.height * centerMargin;
-
+                let isValidPosition = false;
                 let attempts = 0;
                 const maxAttempts = 50;
 
-                do {
-                    x = margin + Math.random() * (mergedCanvas.width - width - margin * 2);
-                    y = margin + Math.random() * (mergedCanvas.height - height - margin * 2);
+                // 尝试生成在边缘区域的位置
+                while (!isValidPosition && attempts < maxAttempts) {
                     attempts++;
 
+                    // 随机生成整个画布范围内的位置
+                    x = margin + Math.random() * (mergedCanvas.width - width - margin * 2);
+                    y = margin + Math.random() * (mergedCanvas.height - height - margin * 2);
+
+                    // 检查位置是否在中心区域
                     const inCenterX = Math.abs(x + width / 2 - centerX) < centerWidth / 2;
                     const inCenterY = Math.abs(y + height / 2 - centerY) < centerHeight / 2;
 
-                    if ((!inCenterX || !inCenterY) || attempts > maxAttempts) {
-                        break;
+                    // 只有当位置不在中心区域时才接受
+                    if (!(inCenterX && inCenterY)) {
+                        isValidPosition = true;
                     }
-                } while (true);
+                }
 
                 // 随机旋转角度
                 const rotation = Math.random() * 360;
