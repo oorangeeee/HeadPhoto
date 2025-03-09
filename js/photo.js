@@ -18,7 +18,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 添加新元素
     let timerContainer, timerSelect, countdownDisplay;
+    let aspectRatioContainer, aspectRatioSelect;
     createTimerElements();
+    createAspectRatioSelector();
 
     // 初始化检测
     checkCameraSupport();
@@ -303,15 +305,8 @@ document.addEventListener('DOMContentLoaded', () => {
         errorText.style.display = 'none';
         resetButton.style.display = 'block';
 
-        // 添加视频元数据加载事件，用于调整视频显示比例
-        video.addEventListener('loadedmetadata', () => {
-            // 获取实际视频比例
-            const actualRatio = video.videoWidth / video.videoHeight;
-            // 移除固定宽高比，使用实际比例
-            video.style.aspectRatio = `${actualRatio}`;
-            // 确保视频内容完全填充显示区域
-            video.style.objectFit = 'cover';
-        });
+        // 更新视频的初始尺寸比例
+        updateVideoAspectRatio();
 
         stream.getVideoTracks()[0].addEventListener('ended', () => {
             showError('摄像头连接已断开');
@@ -383,6 +378,67 @@ document.addEventListener('DOMContentLoaded', () => {
         timerContainer.after(countdownDisplay);
     }
 
+    // 创建尺寸比例选择器
+    function createAspectRatioSelector() {
+        // 创建容器
+        aspectRatioContainer = document.createElement('div');
+        aspectRatioContainer.id = 'aspectRatioContainer';
+        aspectRatioContainer.className = 'aspect-ratio-container';
+
+        // 创建标签
+        const label = document.createElement('span');
+        label.className = 'aspect-ratio-label';
+        label.textContent = '照片尺寸:';
+
+        // 创建选择器
+        aspectRatioSelect = document.createElement('select');
+        aspectRatioSelect.id = 'aspectRatioSelect';
+
+        // 添加尺寸选项
+        const aspectRatios = [
+            { value: '4:3', text: '4:3 (标准)' },
+            { value: '16:9', text: '16:9 (宽屏)' },
+            { value: '9:16', text: '9:16 (手机竖屏)' }
+        ];
+
+        aspectRatios.forEach(ratio => {
+            const option = document.createElement('option');
+            option.value = ratio.value;
+            option.textContent = ratio.text;
+            aspectRatioSelect.appendChild(option);
+        });
+
+        // 组装元素
+        aspectRatioContainer.appendChild(label);
+        aspectRatioContainer.appendChild(aspectRatioSelect);
+
+        // 添加到DOM - 放在延时选择器之后
+        timerContainer.after(aspectRatioContainer);
+
+        // 添加变化事件处理
+        aspectRatioSelect.addEventListener('change', updateVideoAspectRatio);
+    }
+
+    // 更新视频显示尺寸比例
+    function updateVideoAspectRatio() {
+        if (!video.srcObject) return;
+
+        const aspectRatio = aspectRatioSelect.value;
+        const [widthRatio, heightRatio] = aspectRatio.split(':').map(Number);
+
+        // 设置视频容器的比例
+        video.style.aspectRatio = `${widthRatio}/${heightRatio}`;
+
+        // 如果是手机竖屏模式，调整对象适应方式
+        if (aspectRatio === '9:16') {
+            video.style.objectFit = 'cover';
+        } else {
+            video.style.objectFit = 'cover';
+        }
+
+        console.log(`尺寸比例已更新为: ${aspectRatio}`);
+    }
+
     // 启动延时拍照
     function startTimedCapture() {
         if (!video.srcObject) {
@@ -449,18 +505,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 实际拍照功能
     function takePhotoNow() {
+        // 确定裁剪区域的尺寸和位置
+        const aspectRatio = aspectRatioSelect.value;
+        const [widthRatio, heightRatio] = aspectRatio.split(':').map(Number);
+
         // 设置canvas大小与视频相同
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
 
-        // 在canvas上绘制当前视频帧（需要镜像处理）
         const context = canvas.getContext('2d');
 
-        // 镜像处理：先翻转坐标系，再绘制，这样保存的照片也是镜像的
+        // 计算裁剪区域
+        let sourceX = 0;
+        let sourceY = 0;
+        let sourceWidth = video.videoWidth;
+        let sourceHeight = video.videoHeight;
+
+        // 计算视频的实际比例
+        const videoAspect = video.videoWidth / video.videoHeight;
+        // 计算目标比例
+        const targetAspect = widthRatio / heightRatio;
+
+        // 根据比例差异决定如何裁剪
+        if (videoAspect > targetAspect) {
+            // 视频比目标宽，需要裁剪两侧
+            sourceWidth = video.videoHeight * targetAspect;
+            sourceX = (video.videoWidth - sourceWidth) / 2;
+        } else {
+            // 视频比目标窄，需要裁剪上下
+            sourceHeight = video.videoWidth / targetAspect;
+            sourceY = (video.videoHeight - sourceHeight) / 2;
+        }
+
+        // 镜像处理：先翻转坐标系，再绘制
         context.translate(canvas.width, 0);
         context.scale(-1, 1);
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        // 恢复坐标系，以免影响后续绘制
+
+        // 绘制裁剪后的视频区域(这里使用完整视图，因为我们已经通过CSS处理了视频的显示比例)
+        context.drawImage(
+            video,
+            sourceX, sourceY, sourceWidth, sourceHeight, // 源区域
+            0, 0, canvas.width, canvas.height            // 目标区域
+        );
+
+        // 恢复坐标系
         context.setTransform(1, 0, 0, 1, 0, 0);
 
         // 获取照片数据URL

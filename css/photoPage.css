@@ -345,3 +345,26 @@ body {
     border-radius: 8px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
+
+.aspect-ratio-container {
+    display: flex;
+    align-items: center;
+    margin: 10px 0;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+}
+
+.aspect-ratio-label {
+    font-size: 14px;
+    color: #6e6e73;
+}
+
+#aspectRatioSelect {
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #d2d2d7;
+    font-size: 14px;
+    margin: 0 10px;
+    width: 120px;
+}
