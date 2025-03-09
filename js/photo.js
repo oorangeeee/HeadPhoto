@@ -451,9 +451,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // 隐藏开始按钮和计时器选择
+        // 隐藏开始按钮、计时器选择和尺寸选择
         captureButton.style.display = 'none';
         timerContainer.style.display = 'none';
+        aspectRatioContainer.style.display = 'none';
 
         // 获取延时时间
         const delaySeconds = parseInt(timerSelect.value);
@@ -1011,9 +1012,10 @@ document.addEventListener('DOMContentLoaded', () => {
         downloadButton.style.display = 'none';
         countdownDisplay.style.display = 'none';
 
-        // 显示开始按钮和延时选择
+        // 显示开始按钮、延时选择和尺寸选择
         captureButton.style.display = 'block';
         timerContainer.style.display = 'flex';
+        aspectRatioContainer.style.display = 'flex';
 
         if (video.srcObject) {
             statusText.textContent = '请拍摄4张照片';
