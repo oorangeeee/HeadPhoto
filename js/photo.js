@@ -22,6 +22,14 @@ document.addEventListener('DOMContentLoaded', () => {
     createTimerElements();
     createAspectRatioSelector();
 
+    // 添加贴纸相关变量
+    let stickers = [];
+    const stickerOptions = [
+        { id: 'none', name: '无贴纸', src: '' },
+        { id: 'orange', name: '橙子', src: './image/橙子.png' }
+    ];
+    let currentSticker = 'none';
+
     // 初始化检测
     checkCameraSupport();
 
@@ -789,6 +797,82 @@ document.addEventListener('DOMContentLoaded', () => {
 
         filterPanel.appendChild(colorSection);
 
+        // 添加贴纸选择部分
+        const stickerSection = document.createElement('div');
+        stickerSection.className = 'sticker-section';
+
+        const stickerTitle = document.createElement('h3');
+        stickerTitle.textContent = '选择贴纸';
+        stickerSection.appendChild(stickerTitle);
+
+        const stickerGrid = document.createElement('div');
+        stickerGrid.className = 'sticker-grid';
+
+        stickerOptions.forEach(sticker => {
+            const stickerItem = document.createElement('div');
+            stickerItem.className = 'sticker-item';
+            stickerItem.dataset.sticker = sticker.id;
+
+            if (sticker.id === 'none') {
+                stickerItem.classList.add('active');
+            }
+
+            // 创建预览图标
+            const stickerPreview = document.createElement('div');
+            stickerPreview.className = 'sticker-preview';
+
+            if (sticker.src) {
+                const img = document.createElement('img');
+                img.src = sticker.src;
+                img.alt = sticker.name;
+                stickerPreview.appendChild(img);
+            } else {
+                stickerPreview.textContent = '无';
+            }
+
+            const stickerName = document.createElement('div');
+            stickerName.className = 'sticker-name';
+            stickerName.textContent = sticker.name;
+
+            stickerItem.appendChild(stickerPreview);
+            stickerItem.appendChild(stickerName);
+
+            // 添加选择事件
+            stickerItem.addEventListener('click', function (e) {
+                e.preventDefault();
+                selectSticker(this, sticker.id);
+            });
+
+            stickerItem.addEventListener('touchend', function (e) {
+                e.preventDefault();
+                selectSticker(this, sticker.id);
+            }, false);
+
+            stickerGrid.appendChild(stickerItem);
+        });
+
+        // 选择贴纸的辅助函数
+        function selectSticker(element, stickerId) {
+            document.querySelectorAll('.sticker-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            element.classList.add('active');
+            currentSticker = stickerId;
+
+            // 如果选择了贴纸，生成随机贴纸
+            if (stickerId !== 'none') {
+                generateStickers(stickerId);
+            } else {
+                stickers = [];
+            }
+
+            // 更新预览
+            applyFilterToPreview();
+        }
+
+        stickerSection.appendChild(stickerGrid);
+        filterPanel.appendChild(stickerSection);
+
         // 将滤镜面板添加到DOM
         const container = document.querySelector('.container');
         container.insertBefore(filterPanel, document.querySelector('.storage-container'));
@@ -796,7 +880,113 @@ document.addEventListener('DOMContentLoaded', () => {
         return filterPanel;
     }
 
-    // 修改 applyFilterToPreview 函数，增加错误处理和日志
+    // 生成随机贴纸
+    function generateStickers(stickerId) {
+        const stickerOption = stickerOptions.find(s => s.id === stickerId);
+        if (!stickerOption || !stickerOption.src) return;
+
+        // 清空现有贴纸
+        stickers = [];
+
+        // 随机生成20-30个贴纸
+        const count = Math.floor(Math.random() * 11) + 20; // 20-30
+
+        // 预加载贴纸图片以获取尺寸信息
+        const img = new Image();
+        img.onload = () => {
+            // 计算合适的贴纸尺寸，控制在原图的10%-15%之间
+            const maxStickerSize = Math.min(mergedCanvas.width, mergedCanvas.height) * 0.15;
+            const baseSize = Math.min(maxStickerSize, Math.max(30, Math.min(img.width, img.height)));
+
+            for (let i = 0; i < count; i++) {
+                // 随机确定贴纸大小 (原始尺寸的50%-100%)
+                const scale = 0.5 + Math.random() * 0.5;
+                const width = baseSize * scale;
+                const height = (img.height / img.width) * width;
+
+                // 随机位置 - 只在边缘区域
+                let x, y;
+                const margin = width * 0.5; // 距离画布边缘的最小距离
+                const centerMargin = 0.3; // 中心区域的比例（避开的区域）
+
+                // 确保贴纸不在中心区域
+                const centerX = mergedCanvas.width / 2;
+                const centerY = mergedCanvas.height / 2;
+                const centerWidth = mergedCanvas.width * centerMargin;
+                const centerHeight = mergedCanvas.height * centerMargin;
+
+                // 随机尝试找位置直到找到合适的位置
+                let attempts = 0;
+                const maxAttempts = 50;
+
+                do {
+                    x = margin + Math.random() * (mergedCanvas.width - width - margin * 2);
+                    y = margin + Math.random() * (mergedCanvas.height - height - margin * 2);
+                    attempts++;
+
+                    // 检查是否在中心区域
+                    const inCenterX = Math.abs(x + width / 2 - centerX) < centerWidth / 2;
+                    const inCenterY = Math.abs(y + height / 2 - centerY) < centerHeight / 2;
+
+                    // 如果不在中心区域，或者尝试太多次，就接受这个位置
+                    if ((!inCenterX || !inCenterY) || attempts > maxAttempts) {
+                        break;
+                    }
+                } while (true);
+
+                // 随机旋转角度
+                const rotation = Math.random() * 360;
+
+                stickers.push({
+                    src: stickerOption.src,
+                    x,
+                    y,
+                    width,
+                    height,
+                    rotation
+                });
+            }
+
+            // 检查贴纸之间是否过度重叠
+            reduceOverlapping();
+
+            // 更新预览
+            applyFilterToPreview();
+        };
+
+        img.src = stickerOption.src;
+    }
+
+    // 减少贴纸之间的重叠
+    function reduceOverlapping() {
+        const overlapThreshold = 0.7; // 允许重叠的最大比例
+
+        for (let i = 0; i < stickers.length; i++) {
+            for (let j = i + 1; j < stickers.length; j++) {
+                const s1 = stickers[i];
+                const s2 = stickers[j];
+
+                // 简化的碰撞检测（忽略旋转）
+                const overlapX = Math.max(0, Math.min(s1.x + s1.width, s2.x + s2.width) - Math.max(s1.x, s2.x));
+                const overlapY = Math.max(0, Math.min(s1.y + s1.height, s2.y + s2.height) - Math.max(s1.y, s2.y));
+
+                const area1 = s1.width * s1.height;
+                const area2 = s2.width * s2.height;
+                const overlapArea = overlapX * overlapY;
+
+                if (overlapArea > Math.min(area1, area2) * overlapThreshold) {
+                    // 重叠过大，移动第二个贴纸
+                    s2.x = Math.random() * (mergedCanvas.width - s2.width);
+                    s2.y = Math.random() * (mergedCanvas.height - s2.height);
+
+                    // 重新检查这个贴纸
+                    j--;
+                }
+            }
+        }
+    }
+
+    // 修改 applyFilterToPreview 函数
     function applyFilterToPreview() {
         if (photoCount < 4 || !mergedCanvas) {
             console.log('无法应用滤镜: 照片不足或画布未准备');
@@ -884,11 +1074,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
 
+            // 绘制贴纸
+            if (stickers.length > 0) {
+                drawStickers(previewCtx);
+            }
+
             // 所有照片处理完成后更新预览
             Promise.all(processPromises).then(() => {
                 console.log('所有照片处理完成，更新预览图');
                 mergedPhoto.src = previewCanvas.toDataURL('image/png');
             });
+        });
+    }
+
+    // 绘制贴纸到画布
+    function drawStickers(ctx) {
+        stickers.forEach(sticker => {
+            const img = new Image();
+            img.onload = () => {
+                ctx.save();
+                ctx.translate(sticker.x + sticker.width / 2, sticker.y + sticker.height / 2);
+                ctx.rotate(sticker.rotation * Math.PI / 180);
+                ctx.drawImage(img, -sticker.width / 2, -sticker.height / 2, sticker.width, sticker.height);
+                ctx.restore();
+
+                // 更新预览
+                mergedPhoto.src = ctx.canvas.toDataURL('image/png');
+            };
+            img.src = sticker.src;
         });
     }
 
@@ -986,19 +1199,43 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
 
-            // 所有照片处理完成后创建下载链接
-            Promise.all(processPromises).then(() => {
-                const downloadLink = document.createElement('a');
-                downloadLink.href = finalCanvas.toDataURL('image/png');
-                downloadLink.download = `${fileName}.png`;
+            // 绘制贴纸
+            if (stickers.length > 0) {
+                const stickerPromises = stickers.map(sticker => {
+                    return new Promise(resolve => {
+                        const img = new Image();
+                        img.onload = () => {
+                            finalCtx.save();
+                            finalCtx.translate(sticker.x + sticker.width / 2, sticker.y + sticker.height / 2);
+                            finalCtx.rotate(sticker.rotation * Math.PI / 180);
+                            finalCtx.drawImage(img, -sticker.width / 2, -sticker.height / 2, sticker.width, sticker.height);
+                            finalCtx.restore();
+                            resolve();
+                        };
+                        img.src = sticker.src;
+                    });
+                });
 
-                document.body.appendChild(downloadLink);
-                downloadLink.click();
-                document.body.removeChild(downloadLink);
-
-                statusText.textContent = '大头贴已保存';
-            });
+                Promise.all(stickerPromises).then(() => {
+                    createDownloadLink(finalCanvas, fileName);
+                });
+            } else {
+                createDownloadLink(finalCanvas, fileName);
+            }
         });
+    }
+
+    // 创建下载链接
+    function createDownloadLink(canvas, fileName) {
+        const downloadLink = document.createElement('a');
+        downloadLink.href = canvas.toDataURL('image/png');
+        downloadLink.download = `${fileName}.png`;
+
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+
+        statusText.textContent = '大头贴已保存';
     }
 
     function resetPhotos() {

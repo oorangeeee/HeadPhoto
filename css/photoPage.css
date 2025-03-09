@@ -368,3 +368,59 @@ body {
     margin: 0 10px;
     width: 120px;
 }
+
+/* 贴纸选择器样式 */
+.sticker-section {
+    margin-top: 20px;
+    border-top: 1px solid #e6e6e6;
+    padding-top: 15px;
+}
+
+.sticker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.sticker-item {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    padding: 5px;
+    user-select: none;
+}
+
+.sticker-item:hover {
+    background-color: #f5f5f7;
+    transform: translateY(-2px);
+}
+
+.sticker-item.active {
+    background-color: #e6f2ff;
+    border: 2px solid #0071e3;
+}
+
+.sticker-preview {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f5f5f7;
+    overflow: hidden;
+}
+
+.sticker-preview img {
+    max-width: 80%;
+    max-height: 80%;
+    object-fit: contain;
+}
+
+.sticker-name {
+    font-size: 12px;
+    margin-top: 5px;
+    color: #6e6e73;
+}
