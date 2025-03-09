@@ -509,49 +509,36 @@ document.addEventListener('DOMContentLoaded', () => {
         const aspectRatio = aspectRatioSelect.value;
         const [widthRatio, heightRatio] = aspectRatio.split(':').map(Number);
 
-        // 设置canvas大小与视频相同
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        // 修改1: 使用裁剪区域的实际尺寸作为canvas尺寸
+        const sourceWidth = Math.min(video.videoWidth, video.videoHeight * widthRatio / heightRatio);
+        const sourceHeight = sourceWidth * heightRatio / widthRatio;
+
+        canvas.width = sourceWidth;  // 直接使用裁剪尺寸
+        canvas.height = sourceHeight;
 
         const context = canvas.getContext('2d');
 
         // 计算裁剪区域
-        let sourceX = 0;
-        let sourceY = 0;
-        let sourceWidth = video.videoWidth;
-        let sourceHeight = video.videoHeight;
+        let sourceX = (video.videoWidth - sourceWidth) / 2;
+        let sourceY = (video.videoHeight - sourceHeight) / 2;
 
-        // 计算视频的实际比例
-        const videoAspect = video.videoWidth / video.videoHeight;
-        // 计算目标比例
-        const targetAspect = widthRatio / heightRatio;
-
-        // 根据比例差异决定如何裁剪
-        if (videoAspect > targetAspect) {
-            // 视频比目标宽，需要裁剪两侧
-            sourceWidth = video.videoHeight * targetAspect;
-            sourceX = (video.videoWidth - sourceWidth) / 2;
-        } else {
-            // 视频比目标窄，需要裁剪上下
-            sourceHeight = video.videoWidth / targetAspect;
-            sourceY = (video.videoHeight - sourceHeight) / 2;
-        }
-
-        // 镜像处理：先翻转坐标系，再绘制
-        context.translate(canvas.width, 0);
-        context.scale(-1, 1);
-
-        // 绘制裁剪后的视频区域(这里使用完整视图，因为我们已经通过CSS处理了视频的显示比例)
+        // 修改2: 1:1绘制裁剪区域到canvas
+        context.save();
+        context.scale(-1, 1); // 镜像处理
         context.drawImage(
             video,
-            sourceX, sourceY, sourceWidth, sourceHeight, // 源区域
-            0, 0, canvas.width, canvas.height            // 目标区域
+            sourceX,
+            sourceY,
+            sourceWidth,
+            sourceHeight,
+            -canvas.width, // 由于镜像，X坐标取反
+            0,
+            canvas.width,
+            canvas.height
         );
+        context.restore();
 
-        // 恢复坐标系
-        context.setTransform(1, 0, 0, 1, 0, 0);
-
-        // 获取照片数据URL
+        // 获取照片数据URL - 确保保存完整分辨率
         const photoData = canvas.toDataURL('image/png');
         photoDataArray.push(photoData);
 
@@ -569,86 +556,72 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function mergePhotos() {
-        // 获取第一张照片的实际比例作为标准比例
-        const firstPhotoImg = new Image();
-        firstPhotoImg.onload = () => {
-            const actualRatio = firstPhotoImg.width / firstPhotoImg.height;
+        const imgPromises = photoDataArray.map(photoData => {
+            return new Promise(resolve => {
+                const img = new Image();
+                img.onload = () => resolve({ img, width: img.width, height: img.height });
+                img.src = photoData;
+            });
+        });
 
-            // 设置照片大小，基于实际比例
-            const photoWidth = 600;
-            const photoHeight = photoWidth / actualRatio;
-            const padding = 20; // 照片之间和边缘的间距
-            const cornerRadius = 20; // 圆角大小
+        Promise.all(imgPromises).then(photos => {
+            const padding = 20;
+            const cornerRadius = 20;
 
-            // 计算画布总尺寸
-            const mergedWidth = photoWidth + (padding * 2); // 照片宽度加两侧间距
-            const mergedHeight = (photoHeight * 4) + (padding * 5); // 4张照片高度加5个间距
+            // 修改1: 计算实际最大宽度（不再强制统一宽度）
+            const maxWidth = Math.max(...photos.map(p => p.width)) + (padding * 2);
+            let totalHeight = padding;
 
-            mergedCanvas.width = mergedWidth;
-            mergedCanvas.height = mergedHeight;
+            photos.forEach(photo => {
+                totalHeight += photo.height + padding; // 保持每张照片原始高度
+            });
+
+            // 设置画布尺寸（宽度根据实际内容决定）
+            mergedCanvas.width = maxWidth;
+            mergedCanvas.height = totalHeight;
 
             const mCtx = mergedCanvas.getContext('2d');
 
             // 填充白色背景
             mCtx.fillStyle = 'white';
-            mCtx.fillRect(0, 0, mergedWidth, mergedHeight);
+            mCtx.fillRect(0, 0, mergedCanvas.width, mergedCanvas.height);
 
-            // 绘制圆角矩形作为背景，使用用户选择的颜色
+            // 绘制圆角矩形作为背景
             mCtx.fillStyle = backgroundColor;
-            roundRect(mCtx, 0, 0, mergedWidth, mergedHeight, cornerRadius, true, false);
+            roundRect(mCtx, 0, 0, mergedCanvas.width, mergedCanvas.height, cornerRadius, true, false);
 
-            // 计算每个照片的位置 (竖向排列)
-            const positions = [
-                [padding, padding], // 第一张照片
-                [padding, padding + photoHeight + padding], // 第二张照片
-                [padding, padding + (photoHeight + padding) * 2], // 第三张照片
-                [padding, padding + (photoHeight + padding) * 3]  // 第四张照片
-            ];
+            // 修改2: 保持每张照片原始尺寸
+            let currentY = padding;
+            photos.forEach(photo => {
+                const x = (maxWidth - photo.width) / 2; // 水平居中
+                const y = currentY;
 
-            // 使用Promise.all确保所有照片都加载完成
-            const imagePromises = photoDataArray.map((photoData, index) => {
-                return new Promise((resolve) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        const [x, y] = positions[index];
+                // 绘制白色背景（使用实际尺寸）
+                mCtx.fillStyle = '#ffffff';
+                roundRect(mCtx, x, y, photo.width, photo.height, 12, true, false);
 
-                        // 使用完整图片，不做任何裁剪
-                        const drawWidth = photoWidth;
-                        const drawHeight = photoHeight;
+                // 绘制照片（保持原始尺寸）
+                mCtx.save();
+                roundRect(mCtx, x, y, photo.width, photo.height, 12, false, true);
+                mCtx.clip();
+                mCtx.drawImage(photo.img, x, y, photo.width, photo.height);
+                mCtx.restore();
 
-                        // 绘制背景和边框
-                        mCtx.fillStyle = '#ffffff';
-                        roundRect(mCtx, x, y, photoWidth, photoHeight, 12, true, false);
-
-                        // 在圆角矩形内绘制照片 (使用裁剪区域确保照片在圆角内)
-                        mCtx.save();
-                        roundRect(mCtx, x, y, photoWidth, photoHeight, 12, false, true);
-                        mCtx.clip();
-                        mCtx.drawImage(img, x, y, drawWidth, drawHeight);
-                        mCtx.restore();
-
-                        resolve();
-                    };
-                    img.src = photoData;
-                });
+                currentY += photo.height + padding;
             });
 
-            // 所有照片绘制完成后，更新显示
-            Promise.all(imagePromises).then(() => {
-                // 先显示基本合并图
-                mergedPhoto.src = mergedCanvas.toDataURL('image/png');
-                mergedPhoto.style.display = 'block';
+            // 更新显示
+            mergedPhoto.src = mergedCanvas.toDataURL('image/png');
+            mergedPhoto.style.display = 'block';
 
-                // 显示滤镜面板
-                document.getElementById('filterPanel').style.display = 'block';
+            // 显示滤镜面板
+            document.getElementById('filterPanel').style.display = 'block';
 
-                // 应用当前选择的滤镜
-                if (currentFilter !== 'normal') {
-                    applyFilterToPreview();
-                }
-            });
-        };
-        firstPhotoImg.src = photoDataArray[0];
+            // 应用当前选择的滤镜
+            if (currentFilter !== 'normal') {
+                applyFilterToPreview();
+            }
+        });
     }
 
     // 辅助函数：绘制圆角矩形
@@ -831,86 +804,90 @@ document.addEventListener('DOMContentLoaded', () => {
 
         console.log('应用滤镜:', currentFilter, '背景色:', backgroundColor);
 
-        // 创建一个新canvas用于预览
-        const previewCanvas = document.createElement('canvas');
-        previewCanvas.width = mergedCanvas.width;
-        previewCanvas.height = mergedCanvas.height;
-        const previewCtx = previewCanvas.getContext('2d');
+        // 先获取所有照片的实际尺寸
+        const imgPromises = photoDataArray.map(photoData => {
+            return new Promise(resolve => {
+                const img = new Image();
+                img.onload = () => resolve({ img, width: img.width, height: img.height });
+                img.src = photoData;
+            });
+        });
 
-        // 绘制背景
-        previewCtx.fillStyle = 'white';
-        previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+        Promise.all(imgPromises).then(photos => {
+            const padding = 20;
+            const cornerRadius = 20;
 
-        // 绘制圆角矩形作为背景，使用选择的颜色
-        previewCtx.fillStyle = backgroundColor;
-        roundRect(previewCtx, 0, 0, previewCanvas.width, previewCanvas.height, 20, true, false);
+            // 使用实际最大宽度
+            const maxWidth = Math.max(...photos.map(p => p.width)) + (padding * 2);
+            let totalHeight = padding;
 
-        // 获取选中的滤镜
-        const selectedFilter = filterOptions.find(f => f.id === currentFilter);
+            photos.forEach(photo => {
+                totalHeight += photo.height + padding;
+            });
 
-        // 获取第一张照片的实际比例
-        const photoWidth = 600;
+            // 创建预览画布
+            const previewCanvas = document.createElement('canvas');
+            previewCanvas.width = maxWidth;
+            previewCanvas.height = totalHeight;
+            const previewCtx = previewCanvas.getContext('2d');
 
-        // 处理每张照片
-        let processedCount = 0;
-        const processPhoto = (photoData, index) => {
-            return new Promise((resolve) => {
-                const photoImg = new Image();
-                photoImg.onload = () => {
-                    const actualRatio = photoImg.width / photoImg.height;
-                    const photoHeight = photoWidth / actualRatio;
+            // 填充白色背景
+            previewCtx.fillStyle = 'white';
+            previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
 
-                    const padding = 20;
-                    const x = padding;
-                    const y = padding + (photoHeight + padding) * index;
+            // 绘制背景色
+            previewCtx.fillStyle = backgroundColor;
+            roundRect(previewCtx, 0, 0, previewCanvas.width, previewCanvas.height, cornerRadius, true, false);
 
-                    // 创建临时canvas绘制照片
+            // 获取选中的滤镜
+            const selectedFilter = filterOptions.find(f => f.id === currentFilter);
+
+            // 处理每张照片
+            let currentY = padding;
+            const processPromises = photos.map((photo, index) => {
+                return new Promise(resolve => {
+                    const width = photo.width;
+                    const height = photo.height;
+                    const x = (maxWidth - width) / 2; // 水平居中
+                    const y = currentY;
+
+                    // 创建临时canvas
                     const tempCanvas = document.createElement('canvas');
-                    tempCanvas.width = photoWidth;
-                    tempCanvas.height = photoHeight;
+                    tempCanvas.width = width;
+                    tempCanvas.height = height;
                     const tempCtx = tempCanvas.getContext('2d');
 
                     // 绘制原始照片
-                    tempCtx.drawImage(photoImg, 0, 0, photoWidth, photoHeight);
+                    tempCtx.drawImage(photo.img, 0, 0, width, height);
 
                     // 应用滤镜
                     if (selectedFilter && selectedFilter.id !== 'normal') {
                         try {
-                            // 获取像素数据
-                            let imgData = tempCtx.getImageData(0, 0, photoWidth, photoHeight);
-
-                            // 应用滤镜
+                            let imgData = tempCtx.getImageData(0, 0, width, height);
                             imgData = selectedFilter.apply(tempCtx, imgData);
-
-                            // 将处理后的像素数据放回canvas
                             tempCtx.putImageData(imgData, 0, 0);
                         } catch (e) {
                             console.error('应用滤镜失败:', e);
                         }
                     }
 
-                    // 绘制到最终canvas
+                    // 绘制到预览画布
                     previewCtx.save();
-                    roundRect(previewCtx, x, y, photoWidth, photoHeight, 12, false, true);
+                    roundRect(previewCtx, x, y, width, height, 12, false, true);
                     previewCtx.clip();
                     previewCtx.drawImage(tempCanvas, x, y);
                     previewCtx.restore();
 
-                    processedCount++;
+                    currentY += height + padding;
                     resolve();
-                };
-
-                photoImg.src = photoData;
+                });
             });
-        };
 
-        // 并行处理所有照片
-        const processPromises = photoDataArray.map((photoData, index) => processPhoto(photoData, index));
-
-        // 所有照片处理完成后更新预览
-        Promise.all(processPromises).then(() => {
-            console.log('所有照片处理完成，更新预览图');
-            mergedPhoto.src = previewCanvas.toDataURL('image/png');
+            // 所有照片处理完成后更新预览
+            Promise.all(processPromises).then(() => {
+                console.log('所有照片处理完成，更新预览图');
+                mergedPhoto.src = previewCanvas.toDataURL('image/png');
+            });
         });
     }
 
@@ -929,85 +906,66 @@ document.addEventListener('DOMContentLoaded', () => {
 
         statusText.textContent = '处理中，请稍候...';
 
-        // 创建最终画布
-        const finalCanvas = document.createElement('canvas');
-        const finalCtx = finalCanvas.getContext('2d');
-
-        // 先测量所有照片
-        const measurePromises = photoDataArray.map(photoData => {
+        // 先获取所有照片的实际尺寸
+        const imgPromises = photoDataArray.map(photoData => {
             return new Promise(resolve => {
                 const img = new Image();
-                img.onload = () => resolve({ width: img.width, height: img.height });
+                img.onload = () => resolve({ img, width: img.width, height: img.height });
                 img.src = photoData;
             });
         });
 
-        Promise.all(measurePromises).then(dimensions => {
-            const photoWidth = 600;
+        Promise.all(imgPromises).then(photos => {
             const padding = 20;
+            const cornerRadius = 20;
 
-            // 计算总高度
+            // 使用实际最大宽度
+            const maxWidth = Math.max(...photos.map(p => p.width)) + (padding * 2);
             let totalHeight = padding;
-            dimensions.forEach(dim => {
-                const actualRatio = dim.width / dim.height;
-                const photoHeight = photoWidth / actualRatio;
-                totalHeight += photoHeight + padding;
+
+            photos.forEach(photo => {
+                totalHeight += photo.height + padding;
             });
 
-            // 设置画布尺寸
-            finalCanvas.width = photoWidth + (padding * 2);
+            // 创建最终画布
+            const finalCanvas = document.createElement('canvas');
+            finalCanvas.width = maxWidth;
             finalCanvas.height = totalHeight;
+            const finalCtx = finalCanvas.getContext('2d');
 
-            // 绘制背景
+            // 填充白色背景
             finalCtx.fillStyle = 'white';
             finalCtx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
 
-            // 绘制指定的背景颜色
+            // 绘制背景色
             finalCtx.fillStyle = backgroundColor;
-            roundRect(finalCtx, 0, 0, finalCanvas.width, finalCanvas.height, 20, true, false);
+            roundRect(finalCtx, 0, 0, finalCanvas.width, finalCanvas.height, cornerRadius, true, false);
 
             // 获取选中的滤镜
             const selectedFilter = filterOptions.find(f => f.id === currentFilter);
 
-            // 顺序处理每张照片以确保正确的位置
+            // 处理每张照片
             let currentY = padding;
-
-            const processNextPhoto = (index) => {
-                if (index >= photoDataArray.length) {
-                    // 所有照片处理完成，创建下载链接
-                    const downloadLink = document.createElement('a');
-                    downloadLink.href = finalCanvas.toDataURL('image/png');
-                    downloadLink.download = `${fileName}.png`;
-
-                    document.body.appendChild(downloadLink);
-                    downloadLink.click();
-                    document.body.removeChild(downloadLink);
-
-                    statusText.textContent = '大头贴已保存';
-                    return;
-                }
-
-                // 处理当前照片
-                const photoData = photoDataArray[index];
-                const photoImg = new Image();
-
-                photoImg.onload = () => {
-                    const actualRatio = photoImg.width / photoImg.height;
-                    const photoHeight = photoWidth / actualRatio;
+            const processPromises = photos.map((photo, index) => {
+                return new Promise(resolve => {
+                    const width = photo.width;
+                    const height = photo.height;
+                    const x = (maxWidth - width) / 2; // 水平居中
+                    const y = currentY;
 
                     // 创建临时canvas
                     const tempCanvas = document.createElement('canvas');
-                    tempCanvas.width = photoWidth;
-                    tempCanvas.height = photoHeight;
+                    tempCanvas.width = width;
+                    tempCanvas.height = height;
                     const tempCtx = tempCanvas.getContext('2d');
 
                     // 绘制原始照片
-                    tempCtx.drawImage(photoImg, 0, 0, photoWidth, photoHeight);
+                    tempCtx.drawImage(photo.img, 0, 0, width, height);
 
                     // 应用滤镜
                     if (selectedFilter && selectedFilter.id !== 'normal') {
                         try {
-                            let imgData = tempCtx.getImageData(0, 0, photoWidth, photoHeight);
+                            let imgData = tempCtx.getImageData(0, 0, width, height);
                             imgData = selectedFilter.apply(tempCtx, imgData);
                             tempCtx.putImageData(imgData, 0, 0);
                         } catch (e) {
@@ -1015,27 +973,30 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
 
-                    // 绘制到最终canvas
+                    // 绘制到最终画布
                     finalCtx.save();
-                    roundRect(finalCtx, padding, currentY, photoWidth, photoHeight, 12, false, true);
+                    roundRect(finalCtx, x, y, width, height, 12, false, true);
                     finalCtx.clip();
-                    finalCtx.drawImage(tempCanvas, padding, currentY);
+                    finalCtx.drawImage(tempCanvas, x, y);
                     finalCtx.restore();
 
-                    // 更新Y位置
-                    currentY += photoHeight + padding;
+                    currentY += height + padding;
+                    resolve();
+                });
+            });
 
-                    // 处理下一张照片
-                    statusText.textContent = `处理照片 ${index + 1}/4...`;
-                    processNextPhoto(index + 1);
-                };
+            // 所有照片处理完成后创建下载链接
+            Promise.all(processPromises).then(() => {
+                const downloadLink = document.createElement('a');
+                downloadLink.href = finalCanvas.toDataURL('image/png');
+                downloadLink.download = `${fileName}.png`;
 
-                // 确保src在onload之后设置
-                photoImg.src = photoData;
-            };
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
 
-            // 开始处理第一张照片
-            processNextPhoto(0);
+                statusText.textContent = '大头贴已保存';
+            });
         });
     }
 
