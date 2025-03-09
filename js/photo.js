@@ -33,7 +33,10 @@ document.addEventListener('DOMContentLoaded', () => {
             minSize: 30,      // 最小尺寸(像素)
             maxSize: 60,      // 最大尺寸(像素)
             minCount: 50,     // 最少贴纸数量
-            maxCount: 100      // 最多贴纸数量
+            maxCount: 100,    // 最多贴纸数量
+            centerWidthRatio: 0.8,  // 中心区域宽度占比
+            centerHeightRatio: 0.9, // 中心区域高度占比
+            overlapThreshold: 0.3   // 允许重叠的最大比例
         }
     ];
     let currentSticker = 'none';
@@ -911,13 +914,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const minSize = stickerOption.minSize || 30;
             const maxSize = stickerOption.maxSize || Math.min(mergedCanvas.width, mergedCanvas.height) * 0.15;
 
-            // 定义中心区域和边缘区域的界限
-            const centerMarginWidth = 0.7; // 中心区域占整个画布的比例
-            const centerMarginHeight = 0.9; // 中心区域占整个画布的比例
+            // 定义中心区域和边缘区域的界限 - 使用贴纸配置
+            const centerWidthRatio = stickerOption.centerWidthRatio || 0.7;
+            const centerHeightRatio = stickerOption.centerHeightRatio || 0.9;
             const centerX = mergedCanvas.width / 2;
             const centerY = mergedCanvas.height / 2;
-            const centerWidth = mergedCanvas.width * centerMarginWidth;
-            const centerHeight = mergedCanvas.height * centerMarginHeight;
+            const centerWidth = mergedCanvas.width * centerWidthRatio;
+            const centerHeight = mergedCanvas.height * centerHeightRatio;
 
             for (let i = 0; i < count; i++) {
                 // 在最小和最大尺寸之间随机选择
@@ -975,7 +978,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 减少贴纸之间的重叠
     function reduceOverlapping() {
-        const overlapThreshold = 0.7; // 允许重叠的最大比例
+        const stickerOption = stickerOptions.find(s => s.id === currentSticker);
+        const overlapThreshold = stickerOption?.overlapThreshold || 0.7; // 使用贴纸配置或默认值
 
         for (let i = 0; i < stickers.length; i++) {
             for (let j = i + 1; j < stickers.length; j++) {
