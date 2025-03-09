@@ -32,8 +32,8 @@ document.addEventListener('DOMContentLoaded', () => {
             src: './image/橙子.png',
             minSize: 30,      // 最小尺寸(像素)
             maxSize: 60,      // 最大尺寸(像素)
-            minCount: 50,     // 最少贴纸数量
-            maxCount: 100      // 最多贴纸数量
+            minCount: 100,     // 最少贴纸数量
+            maxCount: 150      // 最多贴纸数量
         }
     ];
     let currentSticker = 'none';
@@ -912,7 +912,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const maxSize = stickerOption.maxSize || Math.min(mergedCanvas.width, mergedCanvas.height) * 0.15;
 
             // 定义中心区域和边缘区域的界限
-            const centerMargin = 0.8; // 中心区域占整个画布的比例
+            const centerMargin = 0.95; // 中心区域占整个画布的比例
             const centerX = mergedCanvas.width / 2;
             const centerY = mergedCanvas.height / 2;
             const centerWidth = mergedCanvas.width * centerMargin;
