@@ -32,8 +32,8 @@ document.addEventListener('DOMContentLoaded', () => {
             src: './image/橙子.png',
             minSize: 30,      // 最小尺寸(像素)
             maxSize: 60,      // 最大尺寸(像素)
-            minCount: 100,     // 最少贴纸数量
-            maxCount: 150      // 最多贴纸数量
+            minCount: 50,     // 最少贴纸数量
+            maxCount: 100      // 最多贴纸数量
         }
     ];
     let currentSticker = 'none';
