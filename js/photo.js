@@ -912,7 +912,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const maxSize = stickerOption.maxSize || Math.min(mergedCanvas.width, mergedCanvas.height) * 0.15;
 
             // 定义中心区域和边缘区域的界限
-            const centerMargin = 0.95; // 中心区域占整个画布的比例
+            const centerMargin = 0.9; // 中心区域占整个画布的比例
             const centerX = mergedCanvas.width / 2;
             const centerY = mergedCanvas.height / 2;
             const centerWidth = mergedCanvas.width * centerMargin;
@@ -946,7 +946,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         isValidPosition = true;
                     }
                 }
-
+                if (!isValidPosition) {
+                    continue;
+                }
                 // 随机旋转角度
                 const rotation = Math.random() * 360;
 
@@ -988,18 +990,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 const overlapArea = overlapX * overlapY;
 
                 if (overlapArea > Math.min(area1, area2) * overlapThreshold) {
-                    // 重叠过大，移动第二个贴纸
-                    s2.x = Math.random() * (mergedCanvas.width - s2.width);
-                    s2.y = Math.random() * (mergedCanvas.height - s2.height);
+                    // 重叠过大，直接删除第二个贴纸
+                    stickers.splice(j, 1);
 
-                    // 重新检查这个贴纸
+                    // 删除后索引减一，重新检查这个位置
                     j--;
                 }
             }
         }
     }
 
-    // 修改 applyFilterToPreview 函数
     function applyFilterToPreview() {
         if (photoCount < 4 || !mergedCanvas) {
             console.log('无法应用滤镜: 照片不足或画布未准备');
