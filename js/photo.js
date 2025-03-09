@@ -912,7 +912,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const maxSize = stickerOption.maxSize || Math.min(mergedCanvas.width, mergedCanvas.height) * 0.15;
 
             // 定义中心区域和边缘区域的界限
-            const centerMargin = 0.3; // 中心区域占整个画布的比例
+            const centerMargin = 0.8; // 中心区域占整个画布的比例
             const centerX = mergedCanvas.width / 2;
             const centerY = mergedCanvas.height / 2;
             const centerWidth = mergedCanvas.width * centerMargin;
