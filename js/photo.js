@@ -927,7 +927,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const margin = width * 0.5;
                 let isValidPosition = false;
                 let attempts = 0;
-                const maxAttempts = 50;
+                const maxAttempts = 100;
 
                 // 尝试生成在边缘区域的位置
                 while (!isValidPosition && attempts < maxAttempts) {
