@@ -1395,8 +1395,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 页面可见性处理
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden' && video.srcObject) {
-      video.srcObject.getTracks().forEach((track) => track.stop());
+    if (video.srcObject) {
+      const tracks = video.srcObject.getVideoTracks();
+      if (document.visibilityState === 'hidden') {
+        tracks.forEach((track) => {
+          track._wasEnabled = track.enabled;
+          track.enabled = false;
+        });
+      } else {
+        tracks.forEach((track) => {
+          if (track._wasEnabled !== false) {
+            track.enabled = true;
+          }
+        });
+      }
     }
   });
 
