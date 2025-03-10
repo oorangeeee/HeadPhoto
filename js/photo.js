@@ -766,16 +766,6 @@ document.addEventListener('DOMContentLoaded', () => {
         selectFilter(this, filter.id);
       });
 
-      // 添加触摸支持
-      filterItem.addEventListener(
-        'touchend',
-        function (e) {
-          e.preventDefault(); // 防止触摸事件转换为点击事件
-          selectFilter(this, filter.id);
-        },
-        false,
-      );
-
       filterGrid.appendChild(filterItem);
     });
 
@@ -860,16 +850,6 @@ document.addEventListener('DOMContentLoaded', () => {
       colorInput.click();
     });
 
-    colorPreview.addEventListener(
-      'touchend',
-      (e) => {
-        e.preventDefault();
-        console.log('颜色预览被触摸');
-        colorInput.click();
-      },
-      false,
-    );
-
     colorInput.addEventListener('input', handleColorChange);
     colorInput.addEventListener('change', handleColorChange);
 
@@ -925,15 +905,6 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         selectSticker(this, sticker.id);
       });
-
-      stickerItem.addEventListener(
-        'touchend',
-        function (e) {
-          e.preventDefault();
-          selectSticker(this, sticker.id);
-        },
-        false,
-      );
 
       stickerGrid.appendChild(stickerItem);
     });
