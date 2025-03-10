@@ -1,56 +1,69 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>橙子大头贴</title>
-    <link rel="stylesheet" href="css/photoPage.css">
-    <link rel="stylesheet" href="css/beian.css">
-    <link rel="icon" href="./image/favicon.ico" type="image/png">
-</head>
+    <link rel="stylesheet" href="css/photoPage.css" />
+    <link rel="stylesheet" href="css/beian.css" />
+    <link rel="icon" href="./image/favicon.ico" type="image/png" />
+  </head>
 
-<body>
+  <body>
     <div class="container">
-        <div class="main-content">
-            <div class="video-container">
-                <video id="video" autoplay playsinline></video>
-                <button id="authButton">启用摄像头</button>
-                <button id="captureButton" class="action-button">拍照</button>
-            </div>
-            <!-- <div class="photos-display" id="photosDisplay">
+      <div class="main-content">
+        <div class="video-container">
+          <video id="video" autoplay playsinline></video>
+          <button id="authButton">启用摄像头</button>
+          <button id="captureButton" class="action-button">拍照</button>
+        </div>
+        <!-- <div class="photos-display" id="photosDisplay">
             </div> -->
-        </div>
+      </div>
 
-        <div class="canvas-container">
-            <canvas id="canvas" style="display:none;"></canvas>
-            <canvas id="mergedCanvas" style="display:none;"></canvas>
-            <img id="photo" alt="拍摄的照片" style="display:none;" />
-            <img id="mergedPhoto" alt="合并的照片" style="display:none;" />
-        </div>
+      <div class="canvas-container">
+        <canvas id="canvas" style="display: none"></canvas>
+        <canvas id="mergedCanvas" style="display: none"></canvas>
+        <img id="photo" alt="拍摄的照片" style="display: none" />
+        <img id="mergedPhoto" alt="合并的照片" style="display: none" />
+      </div>
 
-        <div class="storage-container">
-            <input type="text" id="fileNameInput" placeholder="照片文件名（不含扩展名）" />
-            <button id="downloadButton" class="action-button">保存照片</button>
-            <button id="resetButton" class="action-button secondary-button">重新拍照</button>
-        </div>
+      <div class="storage-container">
+        <input
+          type="text"
+          id="fileNameInput"
+          placeholder="照片文件名（不含扩展名）"
+        />
+        <button id="downloadButton" class="action-button">保存照片</button>
+        <button id="resetButton" class="action-button secondary-button">
+          重新拍照
+        </button>
+      </div>
 
-        <div class="status-message" id="statusText">正在检测摄像头...</div>
-        <div class="status-message error-message" id="errorText"></div>
+      <div class="status-message" id="statusText">正在检测摄像头...</div>
+      <div class="status-message error-message" id="errorText"></div>
     </div>
-    <script src="js/photo.js"></script>
     <footer class="beian-footer">
-        <div class="beian-info">
-            <img src="./image/备案图标.png" alt="备案图标" class="beian-icon">
-            <a href="https://beian.mps.gov.cn/#/query/webSearch?code=42011102005555" rel="noreferrer" target="_blank">
-                鄂公网安备 42011102005555
-            </a>
-            <span class="spacer"> </span>
-            <a href="https://beian.miit.gov.cn/#/Integrated/index" rel="noreferrer" target="_blank" class="icp-beian">
-                青ICP备2024002362号-1
-            </a>
-        </div>
+      <div class="beian-info">
+        <img src="./image/备案图标.png" alt="备案图标" class="beian-icon" />
+        <a
+          href="https://beian.mps.gov.cn/#/query/webSearch?code=42011102005555"
+          rel="noreferrer"
+          target="_blank"
+        >
+          鄂公网安备 42011102005555
+        </a>
+        <span class="spacer"> </span>
+        <a
+          href="https://beian.miit.gov.cn/#/Integrated/index"
+          rel="noreferrer"
+          target="_blank"
+          class="icp-beian"
+        >
+          青ICP备2024002362号-1
+        </a>
+      </div>
     </footer>
-</body>
-
+    <script src="js/photo.js"></script>
+  </body>
 </html>
